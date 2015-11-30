@@ -15,9 +15,7 @@ required by the Anasazi eigensolvers for SSDs.
 \begin{figure}
 \centering
 \includegraphics[scale=0.4]{./architecture.pdf}
-\vspace{-5pt}
 \caption{The architecture of FlashEigen.}
-\vspace{-5pt}
 \label{arch}
 \end{figure}
 
@@ -26,9 +24,7 @@ required by the Anasazi eigensolvers for SSDs.
 %\begin{figure}
 %\centering
 %\includegraphics[scale=0.35]{./SpMM.pdf}
-%\vspace{-5pt}
 %\caption{}
-%\vspace{-5pt}
 %\label{SpMM}
 %\end{figure}
 
@@ -151,9 +147,7 @@ CPU cache hits and reduce the amount of data read from SSDs.
 \begin{figure}
 \centering
 \includegraphics[scale=0.3]{./sparse_mat.pdf}
-\vspace{-5pt}
 \caption{The format of a sparse matrix in FlashEigen.}
-\vspace{-5pt}
 \label{sparse_mat}
 \end{figure}
 
@@ -176,9 +170,7 @@ size and the adaptibility to different numbers of columns.
 \begin{figure}
 \centering
 \includegraphics[scale=0.5]{./tile_format.pdf}
-\vspace{-5pt}
 \caption{The storage format of a tile in a sparse matrix.}
-\vspace{-5pt}
 \label{tile_format}
 \end{figure}
 
@@ -248,13 +240,11 @@ order to increase data locality in SpMM.
 \begin{figure}
 \centering
 \includegraphics[scale=0.4]{./dense_matrix.pdf}
-\vspace{-5pt}
 \caption{The data layout of tall-and-skinny (TAS) dense matrices. A TAS
 dense matrix is partitioned horizontally into many row intervals.
 (a) For an in-memory matrix, row intervals are stored across NUMA nodes and
 elements are stored in row-major order; (b) for an SSD-based matrix, elements
 inside a row interval are stored in column-major order.}
-\vspace{-5pt}
 \label{dense_mat}
 \end{figure}
 
@@ -395,9 +385,7 @@ wearout.
 %\begin{figure}
 %	\begin{center}
 %		\footnotesize
-%		\vspace{-15pt}
 %		\include{mat_ops}
-%		\vspace{-15pt}
 %		\caption{The relative performance of external-memory matrix operations
 %			on a dense matrix with 200M rows and 16 columns on an array of 24
 %		SSDs.}
@@ -520,11 +508,9 @@ minimize locking overhead.
 \begin{figure}
 \centering
 \includegraphics[scale=0.4]{./mat_group.pdf}
-\vspace{-5pt}
 \caption{Break a large group of dense matrices in an operation into multiple
 small groups to reduce memory consumption. XX indicates a TAS matrix
 stored on SSDs and X indicates a small matrix stored in memory.}
-\vspace{-5pt}
 \label{fig:mat_group}
 \end{figure}
 

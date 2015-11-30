@@ -41,7 +41,6 @@ Page \cite{web_graph} & $3.4$B & $129$B & Yes \\
 \end{tabular}
 \normalsize
 \end{center}
-\vspace{-10pt}
 \caption{Graph data sets.}
 \label{graphs}
 \end{table}
@@ -118,9 +117,7 @@ FE-IM SpMM.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
 		\include{SpMM_optimize}
-		\vspace{-15pt}
 		\caption{The effectiveness of the SpMM optimizations on the Friendster
 			graph (F) and the Twitter graph (T) for different numbers of
 			columns in the dense matrices.}
@@ -160,9 +157,7 @@ implementations can still outperform MKL by $2-3$ times in most settings.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
 		\include{SpMM-Friendster}
-		\vspace{-15pt}
 		\caption{The runtime of in-memory SpMM (FE-IM) and SEM-SpMM (FE-SEM)
 			in the FlashEigen, the MKL and the Trilinos implementation on
 		the Friendster graph.}
@@ -173,16 +168,13 @@ implementations can still outperform MKL by $2-3$ times in most settings.
 \begin{figure}[t]
 \centering
 \footnotesize
-\vspace{-15pt}
 \begin{subfigure}{.5\linewidth}
 	\include{spmm1}
-	\vspace{-15pt}
 	\caption{SpMV}
 	\label{fig:spmm1}
 \end{subfigure}%
 \begin{subfigure}{.5\linewidth}
 	\include{spmm4}
-	\vspace{-15pt}
 	\caption{SpMM}
 	\label{fig:spmm4}
 \end{subfigure}
@@ -190,7 +182,6 @@ implementations can still outperform MKL by $2-3$ times in most settings.
 multiplication relative to FlashEigen-IM sparse matrix multiplication.
 In sparse matrix dense multiplication (SpMM), there are four columns
 in the dense matrix.}
-\vspace{-15pt}
 \label{fig:spmm}
 \end{figure}
 
@@ -262,9 +253,7 @@ of thread context switches in high-throughput I/O access.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
 		\include{DMM_optimize}
-		\vspace{-15pt}
 		\caption{The effectiveness of I/O optimizations on dense matrix
 		multiplication.}
 		\label{perf:dmm_opts}
@@ -286,9 +275,7 @@ implementation for the dense matrix multiplication of the second form.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
 		\include{GEMM}
-		\vspace{-15pt}
 		\caption{The runtime of dense matrix multiplication in $op1$. We compare
 			in-memory (FE-IM) and external-memory (FE-EM) implementations
 			in FlashEigen with the MKL and Trilinos implementations.}
@@ -299,9 +286,7 @@ implementation for the dense matrix multiplication of the second form.
 %\begin{figure}
 %	\begin{center}
 %		\footnotesize
-%		\vspace{-15pt}
 %		\include{MvTransMv}
-%		\vspace{-15pt}
 %		\caption{The runtime of dense matrix multiplication in $op3$. We compare
 %			in-memory (FE-IM) and external-memory (FE-EM) implementations
 %			in FlashEigen with the Trilinos implementations.}
@@ -312,9 +297,7 @@ implementation for the dense matrix multiplication of the second form.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
 		\include{DMM-IO}
-		\vspace{-15pt}
 		\caption{The average I/O throughput in dense matrix multiplication
 		on the SSD array.}
 		\label{perf:dmm_io}
@@ -379,22 +362,18 @@ on the page graph on the 1TB-memory machine.
 \begin{figure}[t]
 \centering
 \footnotesize
-\vspace{-15pt}
 \begin{subfigure}{.5\linewidth}
 	\include{eigen-runtime-8ev}
-	\vspace{-15pt}
 	\caption{8 eigenvalues.}
 	\label{fig:eigen8}
 \end{subfigure}%
 \begin{subfigure}{.5\linewidth}
 	\include{eigen-runtime-32ev}
-	\vspace{-15pt}
 	\caption{32 eigenvalues.}
 	\label{fig:eigen32}
 \end{subfigure}
 \caption{The performance of the Trilinos KrylovSchur and FlashEigen-EM
 KrylovSchur relative to the FlashEigen-IM KrylovSchur.}
-\vspace{-15pt}
 \label{fig:eigen}
 \end{figure}
 
@@ -417,9 +396,7 @@ of eigenvalues.
 %\begin{figure}
 %	\begin{center}
 %		\footnotesize
-%		\vspace{-15pt}
 %		\include{eigen-mem}
-%		\vspace{-15pt}
 %		\caption{The memory consumptioin of the three KrylovSchur
 %		implementations.}
 %		\label{perf:eigen_mem}
@@ -447,9 +424,7 @@ machine.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\vspace{-15pt}
 		\include{diff_cache}
-		\vspace{-15pt}
 		\caption{}
 		\label{perf:cache}
 	\end{center}
