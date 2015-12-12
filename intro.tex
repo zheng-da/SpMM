@@ -1,114 +1,107 @@
 % What problem are you going to solve.
-Spectral analysis \cite{} is a fundamental tool for both graph analysis and
-other areas of data mining. Essentially, it computes
-eigenvalues and eigenvectors of graphs to infer properties of graphs.
-spectral clustering \cite{Ng01, Sussman12}, triangle counting \cite{Tsourakakis08}.
-Many real-world graphs are massive: Facebook's social network has billions
-of vertices and today's web graph is even much larger.
+Sparse matrix multiplication is very important computation with a wide variety
+of applications in scientific computing, machine learning and data mining.
+For example, many matrix factorization algorithms on a sparse matrix such as
+singular value decomposition (SVD) \cite{svd} and non-negative matrix
+factorization (NMF) \cite{nmf} requires sparse matrix multiplication.
+Many graph analysis algorithms such as PageRank \cite{pagerank} can be
+formulated as sparse matrix multiplication \cite{Mattson13}. Some of
+the algorithms such as PageRank and SVD require sparse matrix vector
+multiplication while some others such as NMF require sparse matrix dense
+matrix multiplication.
 
 % Why is it hard?
 
-It is computationally expensive to compute all eigenvalues and
-eigenvectors of a large matrix. The computation complexity is
-$O(n^3)$ on a square matrix \cite{Pan99}, where $n$ is the number of rows
-and columns of the matrix.
-When the size of a matrix grows to millions or even billions of rows and
-columns, it becomes prohibitive to compute all eigenvalues and
-eigenvectors.
-
-Numerous algorithms \cite{Lanczos, IRLM, krylovschur, Arbenz05} have been
-developed to compute a small number of eigenpairs.
-The current popular eigensolver packages such as ARPACK \cite{arpack}
-and Anasazi \cite{anasazi} have state-of-art eigensolvers
-capable of computing a few eigenvalues with certain properties such as
-the eigenvalues of the largest or smallest magnitude. All of these eigensolvers
-perform a sequence of sparse matrix multiplication to construct and update
-a vector subspace $S \in \mathbb{R}^{n \times m}$, where $n$ is the size of
-the eigenproblem and $m$ is the subspace size \cite{Arbenz05}. In addition,
-they perform matrix operations on the vector subspace. When computing eigenpairs
-of a graph at the billion scale, neither the sparse matrix that represents
-a graph nor the vector subspace fits in the RAM of a single machine.
-
 It is challenging to implement an efficient kernel of sparse matrix
-multiplication for many real-world graphs. Sparse matrix multiplication
-on these graphs induces many small random memory access due to near-random
-vertex connection. It may suffer from load imbalancing because of
-the power-law distribution in vertex degree. Furthermore, graphs cannot be
+multiplication, especially for many real-world graphs such as social networks
+and Web graphs. Sparse matrix multiplication is notorious for achieving only
+a small fraction of the peak performance of a modern processor \cite{Williams07}.
+It becomes even more challenging to perform this operation on graphs due to
+random memory access caused by near-random vertex connection and load imbalancing
+caused by the power-law distribution in vertex degree. Many real-world graphs
+are enormous. For example, Facebook's social graph has billions of vertices
+and today's web graphs are much large. Furthermore, graphs cannot be
 clustered or partitioned effectively \cite{leskovec} to localize access.
+Therefore, sparse matrix multiplication on graphs is frequently the bottleneck
+in an application.
 
 %How have others addressed the problem?
-Large-scale eigendecomposition is generally solved in a large cluster
-\cite{anasazi, slepc}, where the aggregate memory is sufficient to store
-the sparse matrix and the vector subspace. Sparse matrix multiplication
-on graphs in distributed memory leads to significant network communication
-and is usually bottlenecked by the network. As such, this operation requires
-fast network to achieve performance. However, a supercomputer or a large
-cluster with fast network communication is not accessible to many people.
+Current research focuses on sparse matrix vector multiplication in memory for
+small graphs and process large graphs in a large
+cluster, where the aggregate memory is sufficient to store the graphs.
+The distributed solution for sparse matrix multiplication leads to significant
+network communication and is usually bottlenecked by the network.
+As such, this operation requires fast network to achieve performance.
+However, a supercomputer or a large cluster with fast network communication
+is not accessible to many people.
+
+\dz{can we demonstrate the distributed solution indeed has scalability problems?}
 
 %What is the nature of your solution?
 
-We build FlashEigen, an external-memory eigensolver, on top of a user-space
-filesystem called SAFS \cite{safs} to solve a large eigenproblem with SSDs
-in a single machine. 
-%Today's SSDs or SSD arrays
-%are capable of delivering over a million random IOPS or multiple GB/s of
-%sequential I/O \cite{safs}. Given such I/O performance, it is possible to
+We explore an alternative solution that scales sparse matrix multiplication
+by performing this operation in a semi-external memory (SEM) fashion on commodity
+solid-state drives (SSDs). Today's SSDs or SSD arrays are capable of delivering
+over a million random IOPS or multiple GB/s of sequential I/O \cite{safs}.
+Given such I/O performance, we demonstrate that the SEM solution can achieve
+performance comparable to
+state-of-art in-memory implementation while increasing the scalability
+in proportion to the ratio of edges to vertices in a graph. Semi-external
+memory \cite{flashgraph, Abello98} keeps the sparse matrix on SSDs and
+the vector or the dense matrix in memory.
+
+%Given such I/O performance, it is possible to
 %achieve nearly in-memory performance for large-scale graph analysis using SSDs
 %\cite{flashgraph}. In this paper, we focus on utilizing SSDs for
 %spectral graph analysis as well as general linear algebra.
-Instead of developing a new eigensolver from scratch, we leverage
-the Anasazi framework and implement SSD-based matrix operations
-for the framework. FlashEigen is specifically optimized for the Block
-Krylov-Schur \cite{krylovschur} eigensolver because it is the fastest and
-generates the least I/O among the Anasazi eigensolvers when computing
-eigenvalues of many power-law graphs. The Anasazi eigensolvers implement
-a block extension, which enables the eigensolvers to update multiple vectors
-in the subspace in each iteration to increase computation density and amortize
-I/O overhead. As a result, the eigensolvers require sparse matrix dense matrix
-multiplication (SpMM). Given a graph with hundreds of millions of vertices or
-even billions of vertices,
-the vector subspace constructed by the eigensolvers requires very large storage
-size, usually much larger than the sparse matrix. Therefore, FlashEigen stores
-the entire vector subspace on SSDs.
 
 % Why is it new/different/special?
 
 Although SSDs can deliver high IOPS and sequential I/O throughput, we have
-to overcome many technical challenges to construct an external-memory
-eigensolver with performance comparable to in-memory eigensolvers.
-First, it is challenging to achieve the maximal I/O throughput, on the order
-of ten gigabytes, from a large array of commodity SSDs, due to many overheads
-from the operating system. Even achieving the maximal I/O throughput, SSDs are
-still an order of magnitude slower than DRAM in throughput. Furthermore,
-SSDs wear out after we write data to them. For example, some enterprise
-SSDs \cite{ocz} only allows one DWPD (diskful writes per day). Writing too much
-data to these SSDs drastically shortens their lives and increases operation
-cost.
+to overcome many technical challenges to construct an SSD-friendly kernal
+of sparse matrix multiplication to achieve performance comparable to in-memory
+counterparts. Even though SSDs have high IOPS, their sequential I/O throughput
+is still significantly higher than random I/O. Furthermore, random I/O
+consumes substantial CPU computation \cite{safs}. Even if we achieve
+the maximal I/O throughput, SSDs are still an order of magnitude slower
+than DRAM in throughput. Furthermore, random write is harmful to SSDs
+\cite{sfs}. It increases write amplification, decreases I/O throughput
+and shortens the lives of SSDs.
 
-We perform SpMM in a semi-external memory (SEM) fashion, which keeps
-the sparse matrix on SSDs and dense matrices in memory. This operation streams
-rows in the sparse matrix to memory and multiplies with the dense matrix in
-memory, which generates sequential I/O and allows us to yield maximal I/O
-throughput from SSDs. While maximizing the I/O throughput, we also compress
+Semi-external memory provides a scalable sparse matrix multiplication solution
+that is friendly for SSDs, parallelization and in-memory optimizations.
+It streams the sparse matrix from SSDs for computation and results in maximal
+I/O throughput from SSDs. While maximizing I/O throughput, we also compress
 the sparse matrix to further accelerate retrieving the sparse matrix from SSDs.
-The SEM strategy incorporates well with in-memory optimizations for SpMM.
+In the parallel setting, each thread streams its own partitions for computation
+and streams its portions of computation result to SSDs. As such, the computation
+in each thread is independent to each other.
 We deploy multiple in-memory optimizations specifically designed for power-law
 graphs. For example, we assign partitions of the sparse matrix dynamically to
 threads for load balancing, deploy cache blocking to increase CPU cache hits,
 partition and evenly distribute the dense matrix to NUMA nodes to fully utilize
 the memory bandwidth of a NUMA machine.
 
-We deploy optimizations on dense matrix operations to reduce I/O and fully
-utilize the I/O bandwidth of the SSDs. Thanks to the block extension of
-the Anasazi eigensolvers, we group multiple vectors together into a column-major
-dense matrix and store each dense matrix in a separate SAFS file for efficient
-I/O access to any vectors in the subspace. When accessing a large number of dense
-matrices in a single operation, we group dense matrices to constrain memory
-consumption of the matrix operation to improve its scalability. To reduce I/O
-and alleviate SSD wear out, we use deploy lazy evaluation and cache the most
-recent dense matrix in the subspace.
+Sparse matrix dense matrix multiplication has much higher computation density
+than sparse matrix vector multiplication.
+When performing sparse matrix dense matrix multiplication, we organize
+the dense matrix in the row-major order to increase data locality.
+When the dense matrix is larger than the memory, we split the dense matrix
+vertically into multiple partitions. Each partition can fit in memory and
+is organized in row-major order.
+This approach requires $\lceil \frac{D}{M} \rceil$ passes over the sparse
+matrix. When RAM becomes the bottleneck, it does not really matter.
+
+Semi-external memory has a subtle point. The bottleneck in the system may
+vary as the number of columns in the dense matrix increases.
 
 % What are it's key features?
+
+energy-efficient.
+
+The semi-external memory sparse matrix multiplication is usually bottlenecked
+by RAM instead of SSDs. Discuss how much I/O is required to balance SSDs and
+RAM.
 
 Our result shows that for many real-world sparse graphs, the SSD-based
 eigensolver is able to achieve 40\%-60\%
