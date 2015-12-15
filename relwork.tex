@@ -1,18 +1,3 @@
-Anasazi \cite{anasazi} is an eigensolver framework in the Trilinos project
-\cite{trilinos}. This framework implements block extension of multiple
-eigensolver algorithms
-such as Block Krylov-Schur method \cite{krylovschur}, Block Davidson method
-\cite{Arbenz05} and LOBPCG \cite{Arbenz05}. This is a very flexible framework
-that allows users to redefine sparse matrix dense matrix multiplication and
-dense matrix operations. By default, Anasazi uses the matrix implementations
-in Trilinos that run in the distributed memory.
-
-Arpack \cite{arpack} is another state-of-art eigensolver commonly used by
-multiple numeric computation frameworks such as Matlab. This eigensolver
-implements the implicitly restarted arnoldi method \cite{IRAM}. Arpack
-only allows users to redefine sparse matrix vector multiplication.
-Its dense matrix operations by default run in serial.
-
 Sparse matrix vector multiplication (SpMV) and sparse matrix dense matrix
 multiplication (SpMM) are an important operation in numeric computation and
 are well studied in the literature. For example, Williams et. al
@@ -25,18 +10,20 @@ further advance sparse matrix dense matrix multiplication with a focus on
 optimizations for external memory.
 
 FlashGraph \cite{flashgraph} is a general graph analysis framework. It performs
-graph algorithms in a semi-external memory fashion \cite{sem}, i.e., it keeps
+graph algorithms in a semi-external memory fashion \cite{Abello98}, i.e., it keeps
 vertex state in memory and edge lists on SSDs. It is specifically optimized for
 graph algorithms that has a fraction of vertices running in each iteration.
 This design prevents FlashGraph from performing some optimizations for sparse
 matrix multiplication as shown in this paper.
 
-HEIGEN \cite{Kang11} is an eigensolver implemented with MapReduce \cite{mapreduce}
-to compute eigenpairs for spectral graph analysis. HEIGEN implements a basic
-Lanczos algorithm
-\cite{Lanczos} with selective orthogonalization from scratch. In contrast, our
-approach extends the state-of-art implementations to SSDs. By integrating many
-SSDs to a single machine, our approach can compete with a cluster.
+Anasazi \cite{anasazi} is an eigensolver framework in the Trilinos project
+\cite{trilinos}. This framework implements block extension of multiple
+eigensolver algorithms
+such as Block Krylov-Schur method \cite{krylovschur}, Block Davidson method
+\cite{Arbenz05} and LOBPCG \cite{Arbenz05}. This is a very flexible framework
+that allows users to redefine sparse matrix dense matrix multiplication and
+dense matrix operations. By default, Anasazi uses the matrix implementations
+in Trilinos that run in the distributed memory.
 
 Zhou et al. \cite{Zhou12} implemented an LOBPCG \cite{Arbenz05} eigensolver in
 an SSD cluster. Their implementation targets nuclear many-body Hamiltonian
