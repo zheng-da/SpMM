@@ -3,8 +3,8 @@
 We evaluate the performance of the semi-external memory sparse matrix
 multiplication on multiple real-world billion-scale graphs including a web-page
 graph with 3.4 billion vertices. We first demonstrate the effectiveness of
-the optimizations on sparse matrix multiplication and then compare
-the performance of our semi-external-memory implementation with
+both in-memory and external-memory optimizations on sparse matrix multiplication
+and then compare the performance of our semi-external-memory implementation with
 multiple in-memory implementations: \textit{(i)} our in-memory implementation,
 \textit{(ii)} MKL and \textit{(iii)} Trilinos. We then evaluate the overall
 performance of the applications that require sparse matrix multiplication.
@@ -30,11 +30,11 @@ Twitter \cite{twitter} & $42$M & $1.5$B & Yes \\
 \hline
 Friendster \cite{friendster} & $65$M & $1.7$B & No \\
 \hline
-KNN distance graph \cite{} & $62$M & $12$B & No \\
+Page graph \cite{web_graph} & $3.4$B & $129$B & Yes \\
 \hline
-Page \cite{web_graph} & $3.4$B & $129$B & Yes \\
-%\hline
-%RMAT graph \cite{rmat} & & & & \\
+RMAT-40 \cite{rmat} & 100M & 3.7B & No \\
+\hline
+RMAT-160 \cite{rmat} & 100M & 14B & No \\
 \hline
 \end{tabular}
 \normalsize
@@ -43,17 +43,15 @@ Page \cite{web_graph} & $3.4$B & $129$B & Yes \\
 \label{graphs}
 \end{table}
 
-We use the real-world graphs in Table \ref{graphs} for evaluation. The largest
-graph is the page graph with 3.4 billion vertices and 129 billion edges.
-The smallest graph we use has 42 million vertices and 1.5 billion edges.
-Twitter and Friendster are social network graphs. The KNN distance graph is
-a symmetrized 100-nearest neighbor adjacency graph with cosine distance as
-the edge weight. The distance graph is generated over all frames of the Babel
-Tagalog corpus, commonly used in speech recognition. Majority of the vertices
-in this graph has degree between $100$ to $1000$, so this graph does not follow
-the power-law distribution in vertex degree.
-The page graph is clustered by domain, generating good CPU cache hit rates
-in sparse matrix dense matrix multiplication.
+We use some synthetic graphs and real-world graphs, as shown in Table \ref{graphs}
+for evaluation. The smallest graph we use has 42 million vertices and 1.5 billion
+edges. The largest graph is the page graph with 3.4 billion vertices
+and 129 billion edges, which is two orders of magnitude larger than the smallest
+graphs. We generate two synthetic graphs with R-Mat \cite{rmat} to fill
+the size gap between the smallest graph and the largest graph. The synthetic graphs
+have different density to help evaluate our sparse matrix multiplication more
+thoroughly. The page graph is clustered by domain, generating good CPU cache
+hit rates in sparse matrix multiplication.
 
 \subsection{Optimizations on sparse matrix multiplication}
 We first deploy a set of memory optimizations to implement a fast
@@ -88,15 +86,12 @@ the dense matrices have more columns because more columns in the dense matrices
 require more memory bandwidth. Cache blocking is very effective when
 the dense matrices have fewer columns because it can effectively increase CPU
 cache hits. When there are more columns in the dense matrices, data locality
-improves and cache blocking becomes less effective. When there are too many
-columns, the rows from
+improves and the effectiveness of cache blocking becomes less noticeable.
+When there are too many columns, the rows from
 the input and output matrices can no longer be in the CPU cache. Thus, it even
 has a little negative effect on the Friendster graph when the dense matrices
-have $16$ columns. However, we never use dense matrices with more than four
-columns in sparse matrix multiplication in the KrylovSchur eigensolver, which
-we evaluate in section \ref{perf:KrylovSchur}. With all optimizations, we
-have a fast in-memory sparse matrix dense matrix multiplication, denoted by
-FE-IM SpMM.
+have $16$ columns. With all optimizations, we have a fast in-memory sparse
+matrix dense matrix multiplication, denoted by IM-SpMM.
 
 \dz{We might want to show the effectiveness of load balancing as well.}
 
@@ -111,8 +106,10 @@ FE-IM SpMM.
 	\end{center}
 \end{figure}
 
-We start SEM SpMM with FE-IM SpMM and move the sparse matrix to SSDs. Then we
-apply the I/O optimizations in the following order:
+We modify the IM-SpMM implementation above for the semi-external memory sparse
+matrix multiplication (SEM-SpMM) on SSDs and write the output dense matrix to
+SSDs. We apply the I/O optimizations to sparse matrix vector multiplication
+in the following order to show their effectiveness:
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
 	\item compress a sparse matrix,
 	\item use one I/O thread per NUMA node (\textit{1IOT}),
@@ -120,32 +117,68 @@ apply the I/O optimizations in the following order:
 	\item use a per-thread buffer pool to allocate memory for I/O
 		(\textit{buf pool}),
 	\item use 8MB for the maximal block size in the kernel (\textit{max block}),
+	\item order the portions of the output dense matrix globally and stream them
+		to SSDs with large I/O (\textit{global output}).
 \end{itemize}
+
+Sparse matrix vector multiplication requires substantial I/O throughput and
+any improvement on I/O improves the overall performance of this operation.
+Compressing the sparse matrix helps us to accelerate the information retrieval
+of the sparse matrix and gives us the best performance boost among all
+optimizations. By reducing the number of thread context switches, we can
+also achieve substantial performance improvement. We can also see that
+memory allocation with \textit{mmap()} also causes significant overhead
+in high-throughput I/O access, so we should use a buffer pool to reduce
+memory allocation when accessing SSDs.
 
 \subsection{The performance of sparse matrix multiplication}
 
-We then evaluate the performance of the SEM SpMM in FlashEigen and compare its
-performance with FE-IM SpMM, the MKL implementation and the Trilinos
-implementation (Figure \ref{perf:spmm}). We only show the performance of
-SpMM on the Friendster graph and the performance on the other graphs is
-similar. The MKL and Trilinos SpMM cannot run on the page graph.
+We evaluate the performance of SEM-SpMM and compare its performance with
+our in-memory implementation (IM-SpMM), the MKL implementation and the Trilinos
+implementation (Figure \ref{perf:spmm}). The MKL and Trilinos SpMM cannot run
+on the page graph.
 
-Our SEM SpMM has performance comparable to FE-IM SpMM, while both FE-IM SpMM
-and FE-SEM SpMM outperforms the MKL and Trilinos implementations.
-On the Friendster graph, FE-SEM SpMM achieves 60\% performance of FE-IM SpMM
-when the dense matrix has only one column and the performance gap narrows
-as the number of columns in the dense matrices increases.
-The Trilinos SpMM is optimized for sparse matrix vector multiplication (SpMV).
-But even for SpMV, our IM-SpMM outperforms Trilinos by 36\%. The MKL SpMM
-performs better when the dense matrices have more columns, but our
-implementations can still outperform MKL by $2-3$ times in most settings.
+We first compare the performance of SEM-SpMM against IM-SpMM on all graphs with
+the input dense matrix preloaded in memory. The experiments show that
+SEM-SpMM gets XX-100\% performance of IM-SpMM. The performance gap becomes
+smaller when the number of columns in the dense matrices increase in all graphs
+and for both cases (the output dense matrix in memory and on SSDs) (Figure
+\ref{perf:spmm_comp}).
+We also show the average I/O throughput generated by SEM-SpMM in
+Figure \ref{}. Sparse matrix vector multiplication generates very high I/O
+throughput. It may get close to the bandwidth of the SSD array, which suggests
+that I/O be the bottleneck of SEM-SpMM when the number of columns in the dense
+matrices is small. As the number of columns increase, the I/O throughput
+generated by SEM-SpMM is only a small fraction of the bandwidth of SSDs, which
+suggests that CPU becomes the bottleneck of the system.
+
+We further measure the performance of SEM-SpMM when the input dense matrix
+cannot fit in memory (Figure \ref{}). We fix the number of columns in the dense
+matrix, but vary the number of columns that can fit in memory to show
+the impact of the memory size on the performance of SpMM. In this case, we need
+to load the input dense matrix from SSDs and write the output dense matrix to
+SSDs. When the memory
+is small, doubling the memory size gives significant performance improvement.
+As the memory size reaches XX, further doubling the memory size does not
+give much performance improvement.
+
+Both IM-SpMM and SEM-SpMM significantly outperform the MKL and Trilinos implementations.
+Figure \ref{perf:spmm} shows the performance of different implementations of
+sparse matrix multiplication with different numbers of columns in the dense
+matrices on the Friendster graph. The performance result is very similar
+on other graphs. The Trilinos SpMM is optimized for sparse matrix vector
+multiplication (SpMV). But even for SpMV, both IM-SpMM and SEM-SpMM outperform
+Trilinos. The MKL SpMM performs better when the dense matrices have more columns,
+but our implementations can still outperform MKL by $2-3$ times in most settings.
+\dz{I should add another line for distributed Trilinos.}
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{spmm.im.vs.sem}
-		\caption{}
-		\label{}
+		\caption{The performance of SEM-SpMM with different numbers of columns
+			in the dense matrix on graphs in Table \ref{graphs} relative to IM-SpMM.}
+		\label{perf:spmm_comp}
 	\end{center}
 \end{figure}
 
@@ -153,32 +186,31 @@ implementations can still outperform MKL by $2-3$ times in most settings.
 	\begin{center}
 		\footnotesize
 		\include{SpMM-Friendster}
-		\caption{The runtime of in-memory SpMM (FE-IM) and SEM-SpMM (FE-SEM)
-			in the FlashEigen, the MKL and the Trilinos implementation on
-		the Friendster graph.}
+		\caption{The runtime of IM-SpMM, SEM-SpMM, the MKL and the Trilinos
+			implementations on the Friendster graph.}
 		\label{perf:spmm}
 	\end{center}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\footnotesize
-\begin{subfigure}{.5\linewidth}
-	\include{spmm1}
-	\caption{SpMV}
-	\label{fig:spmm1}
-\end{subfigure}%
-\begin{subfigure}{.5\linewidth}
-	\include{spmm4}
-	\caption{SpMM}
-	\label{fig:spmm4}
-\end{subfigure}
-\caption{The performance of Trilinos and FlashEigen-SEM sparse matrix
-multiplication relative to FlashEigen-IM sparse matrix multiplication.
-In sparse matrix dense multiplication (SpMM), there are four columns
-in the dense matrix.}
-\label{fig:spmm}
-\end{figure}
+%\begin{figure}[t]
+%\centering
+%\footnotesize
+%\begin{subfigure}{.5\linewidth}
+%	\include{spmm1}
+%	\caption{SpMV}
+%	\label{fig:spmm1}
+%\end{subfigure}%
+%\begin{subfigure}{.5\linewidth}
+%	\include{spmm4}
+%	\caption{SpMM}
+%	\label{fig:spmm4}
+%\end{subfigure}
+%\caption{The performance of Trilinos and FlashEigen-SEM sparse matrix
+%multiplication relative to FlashEigen-IM sparse matrix multiplication.
+%In sparse matrix dense multiplication (SpMM), there are four columns
+%in the dense matrix.}
+%\label{fig:spmm}
+%\end{figure}
 
 %\begin{figure}
 %	\footnotesize
@@ -197,6 +229,19 @@ in the dense matrix.}
 %\end{figure}
 
 \subsection{Performance of the applications}
+
+We evaluate the performance of the implementations of the applications in
+Section \ref{sec:apps}. We compare the performance of our implementations
+with the state-of-art implementations on smaller graphs. For each application,
+we further show their scalability on the page graph.
+
+\subsubsection{PageRank}
+We first evaluate the performance of our SEM PageRank implementation when
+it uses different amount of memory for computation. We compare the performance
+of our implementation with the PageRank implementations in FlashGraph
+\cite{flashgraph} and GraphLab create \cite{}.
+
+\subsubsection{Eigensolver}
 
 We evaluate the performance of our SEM eigensolver and compare its performance
 with our in-memory eigensolver and the original KrylovSchur eigensolver.
@@ -217,8 +262,8 @@ on the page graph on the 1TB-memory machine.
 	\caption{32 eigenvalues.}
 	\label{fig:eigen32}
 \end{subfigure}
-\caption{The performance of the Trilinos KrylovSchur and FlashEigen-EM
-KrylovSchur relative to the FlashEigen-IM KrylovSchur.}
+\caption{The performance of the Trilinos KrylovSchur and our SEM KrylovSchur
+relative to the our in-memory KrylovSchur.}
 \label{fig:eigen}
 \end{figure}
 
@@ -264,8 +309,6 @@ It keeps two $n \times b$ dense matrices in memory and each worker thread
 keeps a fixed number of buffers for I/O, which is usually constant on a given
 machine.
 
-\subsubsection{Scale to billion-node graphs}
-
 We evaluate the scalability of FlashEigen with the page graph with 3.4 billion
 vertices and 129 billion edges. Because the page graph is a directed graph,
 its adjacency matrix is asymmetric and we perform singular value decomposition
@@ -302,3 +345,6 @@ The average I/O throughput during the computation of 8 eigenvalues is about
 the SSD array.
 Given the relative small memory footprint, we are able to scale FlashEigen
 to a much larger eigenvalue problem on our 1TB-RAM machine.
+
+\subsubsection{NMF}
+
