@@ -156,7 +156,7 @@
 % without further effort on your part as the last section in
 % the body of your article BEFORE References or any Appendices.
 
-\numberofauthors{8} %  in this sample file, there are a *total*
+\numberofauthors{4} %  in this sample file, there are a *total*
 % of EIGHT authors. SIX appear on the 'first-page' (for formatting
 % reasons) and the remaining two appear in the \additionalauthors section.
 %
@@ -185,29 +185,28 @@
 
 \maketitle
 \begin{abstract}
-Many eigensolvers such as ARPACK and Anasazi have been developed to compute
-eigenvalues of a large sparse matrix. These eigensolvers are limited by
-the capacity of RAM. They run in memory of a single machine for smaller
-eigenvalue problems and require the distributed memory for larger problems.
-
-In contrast, we develop an SSD-based eigensolver framework called FlashEigen,
-which extends Anasazi eigensolvers to SSDs, to compute eigenvalues of a graph
-with hundreds of millions or even billions of vertices in a single machine.
-FlashEigen performs sparse matrix multiplication in a semi-external memory
-fashion, i.e., we keep the sparse matrix on SSDs and the dense matrix in memory.
-%We specifically optimize the
-%SpMM implementation for many real-world graphs that have nearly random
-%vertex connection and power-law distribution in vertex degree. Due to
-%the sparsity of the real-world graphs, the eigensolvers require large
-%storage space for the vector subspace.
-We store the entire vector subspace on SSDs and reduce I/O to improve
-performance through caching the most recent dense matrix.
-Our result shows that FlashEigen is able to achieve 40\%-60\% performance
-of its in-memory implementation and has performance comparable to the Anasazi
-eigensolvers on a machine with 48 CPU cores. Furthermore, it is capable of
-scaling to a graph with 3.4 billion vertices and 129 billion edges. It takes
-about four hours to compute eight eigenvalues of the billion-node graph using
-120 GB memory.
+Due to random memory access, sparse matrix multiplication is traditionally
+performed in memory and scales to large matrices with distributed memory.
+In contrast, we scale sparse matrix multiplication by utilizing commodity
+SSDs. We implement sparse matrix dense matrix multiplication in
+a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
+and the dense matrix in memory. Our implementation is specifically optimized
+for graphs with power-law distribution in vertex degree and near-random
+vertex connection. Our SEM implementation incorporates with many in-memory
+optimizations specifically for sparse graphs. Coupled with many I/O optimizations,
+our semi-external memory sparse matrix multiplication achieves performance
+comparable to our in-memory implementation on a large parallel machine and
+significantly outperforms the implementations in Trilinos and Intel MKL.
+When the dense matrix has only one column, our SEM implementation achieves
+at least 60\% performance
+of our in-memory implementation for all of our graphs. As the number of columns
+in the dense matrix increases, the performance gap between the in-memory and SEM
+implementations shrinks and the system eventually becomes bottlenecked by CPU.
+When the dense matrix has at least four columns, the SEM implementation achieves
+almost 100\% performance of the in-memory implementation on some graphs.
+We apply our sparse matrix multiplication to three important data analysis
+applications and show that our SSD-based implementation has performance
+comparable to the state-of-art implementations of these applications.
 \end{abstract}
 
 
