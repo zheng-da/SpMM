@@ -41,14 +41,15 @@ is inaccessible or too expensive to many people.
 
 We explore an alternative solution that scales sparse matrix multiplication
 by utilizing commodity solid-state drives (SSDs) and perform this operation
-in a semi-external memory (SEM) fashion. Today's SSDs or SSD arrays are capable
-of delivering over a million random IOPS or multiple GB/s of sequential I/O
-\cite{safs}. Given such I/O performance, we demonstrate that the SEM solution
+in a semi-external memory (SEM) fashion \cite{flashgraph, Abello98}.
+That is, we keep the sparse matrix on SSDs and only keep the vector or
+the dense matrix in memory. Today's SSDs or SSD arrays are capable of delivering
+over a million random IOPS or multiple GB/s of sequential I/O \cite{safs}.
+Furthermore, SSDs are energy-efficient storage media \cite{}. Given fast SSDs,
+we demonstrate that the SEM solution
 can achieve performance comparable to state-of-art in-memory implementations
 for sparse matrix multiplication while increasing the scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
-Semi-external memory \cite{flashgraph, Abello98} keeps the sparse matrix on SSDs
-and only keep the vector or the dense matrix in memory.
 
 % Why is it new/different/special?
 
@@ -91,19 +92,22 @@ is organized in row-major order.
 
 % What are it's key features?
 
-energy-efficient.
-
-The semi-external memory sparse matrix multiplication is usually bottlenecked
-by RAM instead of SSDs. Discuss how much I/O is required to balance SSDs and
-RAM.
-
-Our result shows that for many real-world sparse graphs, the SSD-based
-eigensolver is able to achieve 40\%-60\%
-performance of its in-memory implementation and has performance comparable to
-the Anasazi eigensolver on a machine with 48 CPU cores for computing various
-numbers of eigenvalues. We further demonstrate that the SSD-based eigensolver
-is capable of scaling to a graph with 3.4 billion vertices and 129 billion edges.
-It takes about 4 hours to compute eight eigenvalues of the billion-node graph
-and use 120 GB memory. We conclude that our solution offers new design
-possibilities for large-scale eigendecomposition, replacing memory with larger
-and cheaper SSDs and processing bigger problems on fewer machines.
+Our result shows that for many real-world sparse graphs, our SEM sparse matrix
+multiplication can achieve at least 60\% performance of its in-memory
+implementations and significantly outperforms Trilinos \cite{trilinos} and
+MKL \cite{mkl} on a machine with 48 CPU cores. As the number of columns in
+the dense matrix increases, the performance gap between the in-memory and
+SEM implementations shrinks. When the dense matrix has four or eight columns,
+the system becomes CPU bottlenecked and the SEM solution achieves almost
+100\% performance of the in-memory implementation for some of our graphs.
+This suggests that the SEM solution requires sufficient memory to achieve
+performance. However, additional memory cannot futher improve performance
+but waste energy. We apply the SEM sparse matrix multiplication to some important
+data analysis applications that require sparse matrix multiplication and compete
+our solution with the state-of-art implementations of these applications.
+\dz{show some brief performance results.} As such, we conclude that
+semi-external memory coupled with SSDs delivers a fast and energy-efficient
+solution for large-scale sparse matrix multiplication. It can also serves
+as a building block and offers new design possibilities for large-scale
+data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
+and processing bigger problems on fewer machines.
