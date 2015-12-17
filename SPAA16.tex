@@ -188,23 +188,22 @@
 Due to random memory access, sparse matrix multiplication is traditionally
 performed in memory and scales to large matrices with distributed memory.
 In contrast, we scale sparse matrix multiplication by utilizing commodity
-SSDs. We implement sparse matrix dense matrix multiplication in
+SSDs. We implement sparse matrix dense matrix multiplication (SpMM) in
 a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
 and the dense matrix in memory. Our implementation is specifically optimized
-for graphs with power-law distribution in vertex degree and near-random
-vertex connection. Our SEM implementation incorporates with many in-memory
-optimizations specifically for sparse graphs. Coupled with many I/O optimizations,
-our semi-external memory sparse matrix multiplication achieves performance
+for sparse graphs with power-law distribution in vertex degree and near-random
+vertex connection. As such, our SEM implementation incorporates with many in-memory
+optimizations specifically for these graphs. Coupled with many I/O optimizations,
+our SEM SpMM achieves performance
 comparable to our in-memory implementation on a large parallel machine and
 significantly outperforms the implementations in Trilinos and Intel MKL.
 When the dense matrix has only one column, our SEM implementation achieves
-at least 60\% performance
-of our in-memory implementation for all of our graphs. As the number of columns
-in the dense matrix increases, the performance gap between the in-memory and SEM
-implementations shrinks and the system eventually becomes bottlenecked by CPU.
-When the dense matrix has at least four columns, the SEM implementation achieves
+at least 60\% performance of our in-memory implementation for all of our graphs.
+As the number of columns in the dense matrix increases, the performance gap
+between the in-memory and SEM implementations shrinks.
+When the dense matrix has more than four columns, the SEM implementation achieves
 almost 100\% performance of the in-memory implementation on some graphs.
-We apply our sparse matrix multiplication to three important data analysis
+We apply our SpMM to three important data analysis
 applications and show that our SSD-based implementation has performance
 comparable to the state-of-art implementations of these applications.
 \end{abstract}
