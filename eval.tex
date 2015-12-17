@@ -64,7 +64,8 @@ For memory optimizations, we start with an implementation that performs sparse
 matrix multiplication on a sparse matrix in the CSR format and apply
 the optimizations incrementally in the following order:
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
-		\item partition dense matrices for NUMA (\textit{NUMA}),
+	\item load balancing \dz{to be complete}
+	\item partition dense matrices for NUMA (\textit{NUMA}),
 	\item partition the sparse matrix in both dimensions into tiles of
 		$16K \times 16K$ (\textit{Cache blocking}),
 	\item organize multiple physical tiles into a super tile to fill CPU cache
@@ -92,8 +93,6 @@ has a little negative effect on the Friendster graph when the dense matrices
 have $16$ columns. With all optimizations, we have a fast in-memory sparse
 matrix dense matrix multiplication, denoted by IM-SpMM.
 
-\dz{We might want to show the effectiveness of load balancing as well.}
-
 \begin{figure}
 	\begin{center}
 		\footnotesize
@@ -108,7 +107,7 @@ matrix dense matrix multiplication, denoted by IM-SpMM.
 We modify the IM-SpMM implementation above for the semi-external memory sparse
 matrix multiplication (SEM-SpMM) on SSDs and write the output dense matrix to
 SSDs. We apply the I/O optimizations to sparse matrix vector multiplication
-in the following order to show their effectiveness:
+in the following order to show their effectiveness: \dz{to be complete}
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
 	\item compress a sparse matrix,
 	\item use one I/O thread per NUMA node (\textit{1IOT}),
@@ -159,7 +158,7 @@ to load the input dense matrix from SSDs and write the output dense matrix to
 SSDs. When the memory
 is small, doubling the memory size gives significant performance improvement.
 As the memory size reaches XX, further doubling the memory size does not
-give much performance improvement.
+give much performance improvement. \dz{to be complete}
 
 Both IM-SpMM and SEM-SpMM significantly outperform the MKL and Trilinos implementations.
 Figure \ref{perf:spmm} shows the performance of different implementations of
@@ -248,7 +247,7 @@ we further show their scalability on the page graph.
 We first evaluate the performance of our SEM PageRank implementation when
 it uses different amount of memory for computation. We compare the performance
 of our implementation with the PageRank implementations in FlashGraph
-\cite{flashgraph} and GraphLab create \cite{}.
+\cite{flashgraph} and GraphLab create \cite{}.\dz{to be complete}
 
 \subsubsection{Eigensolver}
 
@@ -326,4 +325,4 @@ eigensolver is able to scale to a much larger eigenvalue problem on our
 1TB-RAM machine.
 
 \subsubsection{NMF}
-
+\dz{to be complete}
