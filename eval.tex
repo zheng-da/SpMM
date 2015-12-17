@@ -4,7 +4,7 @@ We evaluate the performance of the semi-external memory sparse matrix
 multiplication on multiple real-world billion-scale graphs including a web-page
 graph with 3.4 billion vertices. We first demonstrate the effectiveness of
 both in-memory and external-memory optimizations on sparse matrix multiplication
-and then compare the performance of our semi-external-memory implementation with
+and then compare the performance of our semi-external memory implementation with
 multiple in-memory implementations: \textit{(i)} our in-memory implementation,
 \textit{(ii)} MKL and \textit{(iii)} Trilinos. We then evaluate the overall
 performance of the applications that require sparse matrix multiplication.
@@ -48,17 +48,17 @@ for evaluation. The smallest graph we use has 42 million vertices and 1.5 billio
 edges. The largest graph is the page graph with 3.4 billion vertices
 and 129 billion edges, which is two orders of magnitude larger than the smallest
 graphs. We generate two synthetic graphs with R-Mat \cite{rmat} to fill
-the size gap between the smallest graph and the largest graph. The synthetic graphs
+the size gap between the smallest and largest graph. The synthetic graphs
 have different density to help evaluate our sparse matrix multiplication more
 thoroughly. The page graph is clustered by domain, generating good CPU cache
 hit rates in sparse matrix multiplication.
 
 \subsection{Optimizations on sparse matrix multiplication}
-We first deploy a set of memory optimizations to implement a fast
+We first deploy a set of in-memory optimizations to implement a fast
 in-memory sparse matrix multiplication and then deploy a set of I/O
 optimizations to further speed up this operation in semi-external memory.
-We apply the memory and I/O optimizations incrementally to illustrate their
-effectiveness.
+We apply the memory and I/O optimizations incrementally to illustrate
+the effectiveness of each optimization.
 
 For memory optimizations, we start with an implementation that performs sparse
 matrix multiplication on a sparse matrix in the CSR format and apply
@@ -70,17 +70,16 @@ the optimizations incrementally in the following order:
 	\item organize multiple physical tiles into a super tile to fill CPU cache
 		(\textit{Super tile}),
 	\item use CPU vectorization instructions (\textit{Vec}),
-	\item allocate a local buffer to store the intermediate result of
-		multiplication of tiles and the input dense matrix(\textit{Local write}),
+	\item allocate a local buffer to store the intermediate multiplication
+		result on tiles(\textit{Local write}),
 	\item combine the SCSR and COO format to reduce the number of conditional
-		jump CPU instructions (\textit{SCSR+COO}),
+		jump CPU instructions (\textit{SCSR + COO}),
 \end{itemize}
 
 Figure \ref{perf:spmm_opt} shows that almost all of these optimizations have
 positive effect on sparse matrix multiplication and all optimizations
-together speed up the operation by $2-4$ times.
-The degree of effectiveness varies
-significantly between different graphs and different numbers of columns in
+together speed up the operation by $2-4$ times. The degree of effectiveness
+varies between different graphs and different numbers of columns in
 the dense matrices. For example, the NUMA optimization is more effective when
 the dense matrices have more columns because more columns in the dense matrices
 require more memory bandwidth. Cache blocking is very effective when
@@ -126,32 +125,31 @@ any improvement on I/O improves the overall performance of this operation.
 Compressing the sparse matrix helps us to accelerate the information retrieval
 of the sparse matrix and gives us the best performance boost among all
 optimizations. By reducing the number of thread context switches, we can
-also achieve substantial performance improvement. We can also see that
-memory allocation with \textit{mmap()} also causes significant overhead
-in high-throughput I/O access, so we should use a buffer pool to reduce
-memory allocation when accessing SSDs.
+achieve substantial performance improvement. Memory allocation with
+\textit{mmap()} causes significant overhead in high-throughput I/O access,
+so we should use a buffer pool to reduce memory allocation when accessing SSDs.
 
 \subsection{The performance of sparse matrix multiplication}
 
 We evaluate the performance of SEM-SpMM and compare its performance with
-our in-memory implementation (IM-SpMM), the MKL implementation and the Trilinos
+our in-memory implementation (IM-SpMM) as well as the MKL and Trilinos
 implementation (Figure \ref{perf:spmm}). The MKL and Trilinos SpMM cannot run
 on the page graph.
 
 We first compare the performance of SEM-SpMM against IM-SpMM on all graphs with
 the input dense matrix preloaded in memory. The experiments show that
 SEM-SpMM gets XX-100\% performance of IM-SpMM. The performance gap becomes
-smaller when the number of columns in the dense matrices increase in all graphs
+smaller when the number of columns in the dense matrices increases in all graphs
 and for both cases (the output dense matrix in memory and on SSDs) (Figure
-\ref{perf:spmm_comp}).
-We also show the average I/O throughput generated by SEM-SpMM in
+\ref{perf:spmm_comp}) \dz{To be done}.
+We show the average I/O throughput generated by SEM-SpMM in
 Figure \ref{perf:spmm_IO}. Sparse matrix vector multiplication generates very high I/O
-throughput. For the page graph, the I/O throughput gets close to the bandwidth
-of the SSD array, which suggests
-that I/O be the bottleneck of SEM-SpMM when the number of columns in the dense
-matrices is small. As the number of columns increase, the I/O throughput
-caused by SEM-SpMM drops and becomes only a small fraction of the bandwidth of
-SSDs. As such, CPU becomes the bottleneck of the system.
+throughput. For the page graph, when the number of columns in the dense matrices
+is small, the I/O throughput gets close to the bandwidth of the SSD array, which
+suggests that I/O be the bottleneck of SEM-SpMM. As the number of columns increase,
+the I/O throughput
+caused by SEM-SpMM drops. As such, CPU becomes the bottleneck of the system.
+\dz{can we show that we have either saturate CPU or SSDs or both?}
 
 We further measure the performance of SEM-SpMM when the input dense matrix
 cannot fit in memory (Figure \ref{}). We fix the number of columns in the dense
@@ -255,44 +253,30 @@ of our implementation with the PageRank implementations in FlashGraph
 \subsubsection{Eigensolver}
 
 We evaluate the performance of our SEM eigensolver and compare its performance
-with our in-memory eigensolver and the original KrylovSchur eigensolver.
-We compute different numbers of eigenvalues on the three smaller graphs in
+with our in-memory eigensolver and the Trilinos KrylovSchur eigensolver.
+We compute different numbers of eigenvalues on the smaller undirected graphs in
 Table \ref{graphs}. Only our SEM eigensolver is able to compute eigenvalues
-on the page graph on the 1TB-memory machine.
+on the page graph.
 
-\begin{figure}[t]
-\centering
-\footnotesize
-\begin{subfigure}{.5\linewidth}
-	\include{eigen-runtime-8ev}
-	\caption{8 eigenvalues.}
-	\label{fig:eigen8}
-\end{subfigure}%
-\begin{subfigure}{.5\linewidth}
-	\include{eigen-runtime-32ev}
-	\caption{32 eigenvalues.}
-	\label{fig:eigen32}
-\end{subfigure}
-\caption{The performance of the Trilinos KrylovSchur and our SEM KrylovSchur
-relative to the our in-memory KrylovSchur.}
-\label{fig:eigen}
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{eigen-runtime-8ev}
+		\caption{The performance of the Trilinos KrylovSchur and our SEM KrylovSchur
+		relative to the our in-memory KrylovSchur when computing eight eigenvalues.}
+		\label{fig:eigen}
+	\end{center}
 \end{figure}
 
-Our SEM eigensolver achieves at least 30\% performance of our in-memory
-eigensolver, while the in-memory eigensolver outperforms the original
-KrylovSchur eigensolver (Figure \ref{perf:eigen_rt}). The SEM eigensolver
-is more efficient to compute a small number of eigenvalues and is able
-to achieve around 50\% performance of our in-memory eigensolver.
-The performance gap between the in-memory and SEM eigensolvers with the number
-of eigenvalues to compute, and the increase of the performance gap can be
-explained by Figure \ref{perf:eigen_decompose}. SpMM and reorthogonalization
-account for most of computation time when computing a small number of eigenvalues,
-but reorthogonalization eventually dominates the eigendecomposition for computing
-many eigenvalues. Because external-memory dense matrix multiplication is several
-times slower than the in-memory implementations, reorthogonalization accounts for
-over 90\% of runtime in the SEM eigensolver for computing a large number of
-eigenvalues. For many spectral analysis tasks, users only require a small number
-of eigenvalues.
+To compute eight eigenvalues, our SEM eigensolver achieves at least 40\%
+performance of our in-memory eigensolver, while the in-memory eigensolver
+outperforms the Trilinos KrylovSchur eigensolver (Figure \ref{fig:eigen}).
+In this experiment, the block size is one and we only keep two vectors
+(the input and output vectors for SpMV) in memory and store the entire
+vector subspace on SSDs.
+
+\dz{We need an experiment to show how well additional memory can help improve
+performance.}
 
 %\begin{figure}
 %	\begin{center}
@@ -304,29 +288,13 @@ of eigenvalues.
 %	\end{center}
 %\end{figure}
 
-The SEM eigensolver uses a small fraction of memory used by its in-memory
-counterparts and the original Trilinos eigensolver and its memory consumption
-remains roughly the same as the number of eigenvalues computed by the eigensolvers
-increases. A small memory consumption provides two benefits. First, FlashEigen
-is able to scale to a much larger eigenvalue problem. The second benefit is that
-FlashEigen gives users more freedom to choose the subspace size that gives the
-fastest convergence in a given eigenvalue problem because SSDs significantly
-increases memory available to the eigensolver. We have to point out that our
-experiments assume that we choose the subspace size that is not constrained by
-the memory size in a machine.
-
-FlashEigen has memory consumption linear to the number of vertices in a graph.
-It keeps two $n \times b$ dense matrices in memory and each worker thread
-keeps a fixed number of buffers for I/O, which is usually constant on a given
-machine.
-
-We evaluate the scalability of FlashEigen with the page graph with 3.4 billion
+We evaluate the scalability of the SEM eigensolver with the page graph with 3.4 billion
 vertices and 129 billion edges. Because the page graph is a directed graph,
 its adjacency matrix is asymmetric and we perform singular value decomposition
 (SVD) on the adjacency matrix instead of simple eigendecomposition. For the page
 graph, we use $2$ for the block size and $2 \times ev$ for the number of blocks
-because sparse matrix multiplication is completely bottlenecked by SSDs.
-Neither the in-memory eigensolver nor the original Trilinos eigensolver is able
+because sparse matrix vector multiplication is bottlenecked by SSDs.
+Neither the in-memory eigensolver nor the Trilinos eigensolver is able
 to compute eigenvalues on the page graph with 1TB RAM.
 
 \begin{table}
@@ -348,14 +316,14 @@ to compute eigenvalues on the page graph with 1TB RAM.
 	\label{pg_ev}
 \end{table}
 
-FlashEigen computes a fairly large number of eigenvalues within a reasonable
+The SEM eigensolver computes a fairly large number of eigenvalues within a reasonable
 amount of time and consumes a fairly small amount of resources given the large
 size of the eigenvalue problem.
 The average I/O throughput during the computation of 8 eigenvalues is about
 10GB/s, which is very close to the maximal I/O throughput provided by
-the SSD array.
-Given the relative small memory footprint, we are able to scale FlashEigen
-to a much larger eigenvalue problem on our 1TB-RAM machine.
+the SSD array. The relative small memory footprint suggests that the SEM
+eigensolver is able to scale to a much larger eigenvalue problem on our
+1TB-RAM machine.
 
 \subsubsection{NMF}
 
