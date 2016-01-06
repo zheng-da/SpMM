@@ -336,18 +336,19 @@ for sparse matrix multiplication.
 \subsection{PageRank}
 PageRank is an algorithm to rank the Web pages by using hyperlinks between Web
 pages. It was first used by Google and is identified as one of the top 10 data
-mining algorithms \cite{top10}. The algorithm runs iteratively and its update
+mining algorithms \cite{top10}. PageRank is a representative of a set of graph
+algorithms that can be expressed with sparse matrix multiplication or generalized
+sparse matrix multiplication. Other important examples are label propagation \cite{}
+and belief propagation \cite{}. The algorithm runs iteratively and its update
 rule for each Web pages in an iteration is
 $PR(u) = \frac{1-d}{N} + d \times \sum\limits_{v \in B(u)} \frac{PR(v)}{L(v)}$,
 where $B(u)$ denotes the neighbor list of vertex $u$ and $L(v)$ denotes
 the out-degree of vertex $v$. The PageRank algorithm can be expressed as sparse
 matrix multiplication with the R code below.
 
-\vspace{-5pt}
-\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
-pr2 <- (1-d)/N+d*A%*%(pr1/deg)
-\end{minted}
-\vspace{-5pt}
+%\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
+pr2 <- (1-d)/N+d*A\%*\%(pr1/deg)
+%\end{minted}
 
 Based on the memory size, we can place different data in memory to reduce I/O.
 When the memory can only fit a single vector, each iteration needs
