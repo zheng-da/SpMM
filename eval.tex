@@ -135,6 +135,8 @@ our in-memory implementation (IM-SpMM) as well as the MKL and Trilinos
 implementation (Figure \ref{perf:spmm}). The MKL and Trilinos SpMM cannot run
 on the page graph.
 
+\subsubsection{The input dense matrix can fit in memory}
+
 We first compare the performance of SEM-SpMM against IM-SpMM on all graphs with
 the input dense matrix preloaded in memory. The experiments show that
 SEM-SpMM gets XX-100\% performance of IM-SpMM. The performance gap becomes
@@ -149,26 +151,6 @@ suggests that I/O be the bottleneck of SEM-SpMM. As the number of columns increa
 the I/O throughput
 caused by SEM-SpMM drops. As such, CPU becomes the bottleneck of the system.
 \dz{can we show that we have either saturate CPU or SSDs or both?}
-
-We further measure the performance of SEM-SpMM when the input dense matrix
-cannot fit in memory (Figure \ref{}). We fix the number of columns in the dense
-matrix, but vary the number of columns that can fit in memory to show
-the impact of the memory size on the performance of SpMM. In this case, we need
-to load the input dense matrix from SSDs and write the output dense matrix to
-SSDs. When the memory
-is small, doubling the memory size gives significant performance improvement.
-As the memory size reaches XX, further doubling the memory size does not
-give much performance improvement. \dz{to be complete}
-
-Both IM-SpMM and SEM-SpMM significantly outperform the MKL and Trilinos implementations.
-Figure \ref{perf:spmm} shows the performance of different implementations of
-sparse matrix multiplication with different numbers of columns in the dense
-matrices on the Friendster graph. The performance result is very similar
-on other graphs. The Trilinos SpMM is optimized for sparse matrix vector
-multiplication (SpMV). But even for SpMV, both IM-SpMM and SEM-SpMM outperform
-Trilinos. The MKL SpMM performs better when the dense matrices have more columns,
-but our implementations can still outperform MKL by $2-3$ times in most settings.
-\dz{I should add another line for distributed Trilinos.}
 
 \begin{figure}
 	\begin{center}
@@ -190,6 +172,16 @@ but our implementations can still outperform MKL by $2-3$ times in most settings
 	\end{center}
 \end{figure}
 
+Both IM-SpMM and SEM-SpMM significantly outperform the MKL and Trilinos implementations.
+Figure \ref{perf:spmm} shows the performance of different implementations of
+sparse matrix multiplication with different numbers of columns in the dense
+matrices on the Friendster graph. The performance result is very similar
+on other graphs. The Trilinos SpMM is optimized for sparse matrix vector
+multiplication (SpMV). But even for SpMV, both IM-SpMM and SEM-SpMM outperform
+Trilinos. The MKL SpMM performs better when the dense matrices have more columns,
+but our implementations can still outperform MKL by $2-3$ times in most settings.
+\dz{I should add another line for distributed Trilinos.}
+
 \begin{figure}
 	\begin{center}
 		\footnotesize
@@ -197,6 +189,45 @@ but our implementations can still outperform MKL by $2-3$ times in most settings
 		\caption{The runtime of IM-SpMM, SEM-SpMM, the MKL and the Trilinos
 			implementations on the Friendster graph.}
 		\label{perf:spmm}
+	\end{center}
+\end{figure}
+
+\subsubsection{The input dense matrix cannot fit in memory}
+
+We further measure the performance of SEM-SpMM when the input dense matrix
+cannot fit in memory (Figure \ref{perf:spmm32}). In this experiment, we
+measure the performance of multiplying a sparse matrix with a dense matrix
+with 32 columns and the input dense matrix is stored on SSDs initially.
+We need to load the input dense matrix from SSDs and write the output dense
+matrix to SSDs. 
+We perform this sparse matrix multiplication with different memory sizes.
+When the memory can only fit one column in the input dense matrix, the SEM
+implementation only gets 30\% of the in-memory performance. When the memory
+can fit over four columns, the SEM implementation gets over 50\% of
+the in-memory performance. When the memory can fit the entire input dense
+matrix in memory, we get about 80\% of the in-memory performance. Therefore,
+SEM-SpMM requires certain amount of memory to achieve performance close
+to the in-memory implementation.
+
+Two factors lead to performance loss in SEM-SpMM when the input dense matrix
+cannot fit in memory. The main performance loss comes from the loss of data
+locality in SpMM when we have to partition the input dense matrix vertically.
+To understand
+the contribution of this factor, we keep the input dense matrix in memory,
+partition it vertically and perform SpMM with the vertical partitions in
+the same fashion as semi-external memory. As shown in Figure \ref{perf:spmm32},
+partitioning the dense matrix into one-column matrices contributes 60\%
+of performance loss. The performance loss caused by this factor decreases
+stably when the vertical partition size increases. On the other hand,
+the performance loss caused directly by semi-external memory is around 20\%-30\%
+regardless of the vertical partition size of the dense matrix.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{spmm-32cols}
+		\caption{}
+		\label{perf:spmm32}
 	\end{center}
 \end{figure}
 
