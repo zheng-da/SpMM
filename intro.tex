@@ -1,23 +1,24 @@
 % What problem are you going to solve.
 Sparse matrix multiplication is very important computation with a wide variety
 of applications in scientific computing, machine learning and data mining.
-For example, many matrix factorization algorithms on a sparse matrix such as
+For example, matrix factorization algorithms on a sparse matrix such as
 singular value decomposition (SVD) \cite{svd} and non-negative matrix
 factorization (NMF) \cite{nmf} requires sparse matrix multiplication.
-Many graph analysis algorithms such as PageRank \cite{pagerank} can be
+Graph analysis algorithms such as PageRank \cite{pagerank} can be
 formulated as sparse matrix multiplication \cite{Mattson13}. Some of
-the algorithms such as PageRank and SVD require sparse matrix vector
-multiplication while some others such as NMF require sparse matrix dense
+the algorithms, such as PageRank and SVD, require sparse matrix vector
+multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
 
 % Why is it hard?
 
 It is challenging to implement an efficient kernel of sparse matrix
-multiplication, especially for many real-world graphs such as social networks
+multiplication, especially for sparse matrices that encode real-world graphs
+such as social networks
 and Web graphs. Sparse matrix multiplication is notorious for achieving only
 a small fraction of the peak performance of a modern processor \cite{Williams07}.
 It becomes even more challenging to perform this operation on graphs due to
-random memory access caused by near-random vertex connection and load imbalancing
+random memory access caused by near-random connection and load imbalancing
 caused by the power-law distribution in vertex degree. Many real-world graphs
 are enormous. For example, Facebook's social network has billions of vertices
 and today's web graphs are much larger. Furthermore, graphs cannot be
@@ -31,10 +32,10 @@ for small matrices and scaling to a large sparse matrix in a large cluster,
 where the aggregate memory is sufficient to store the sparse matrix
 \cite{Williams07, Yoo11, Boman2013}.
 The distributed solution for sparse matrix multiplication leads to significant
-network communication and is usually bottlenecked by the network.
+network communication and communication network is usually the bottleneck.
 As such, this operation requires fast network to achieve performance.
-However, a supercomputer or a large cluster with fast network communication
-is inaccessible or too expensive to many people.
+A supercomputer or a large cluster with a fast network is inaccessible or
+too expensive for many users.
 
 \dz{can we demonstrate the distributed solution indeed has scalability problems?}
 
@@ -50,35 +51,36 @@ in semi-external memory. Given fast SSDs, we demonstrate that the SEM solution
 can achieve performance comparable to state-of-art in-memory implementations
 for sparse matrix multiplication while increasing the scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
+\dz{discuss}
 SSDs are energy-efficient storage media \cite{}. Thus, our solution introduces
 an energy-efficient architecture for large-scale sparse matrix multiplication.
 
 % Why is it new/different/special?
 
 Although SSDs can deliver high IOPS and sequential I/O throughput, we have
-to overcome many technical challenges to construct an SSD-friendly sparse matrix
+to overcome many technical challenges to construct a sparse matrix
 multiplication kernal to achieve performance comparable to in-memory
 counterparts. Even though SSDs have high IOPS, their sequential I/O throughput
 is still significantly higher than random I/O and SSDs are an order of
-magnitude slower than DRAM in throughput. Furthermore, random write is harmful
-to SSDs \cite{sfs}. It increases write amplification, decreases I/O throughput
-and shortens the lives of SSDs.
+magnitude slower than DRAM in throughput. Furthermore, random writes are harmful
+to SSDs \cite{sfs}. They increase write amplification, decrease I/O throughput,
+increase latency and shorten the lives of SSDs.
 
 Semi-external memory provides a scalable SpMM
-solution that is friendly for SSDs, parallelization and in-memory optimizations.
+solution that is \dz{friendly} for SSDs, parallelization and in-memory optimizations.
 It streams the sparse matrix from SSDs for computation, which results in maximal
 I/O throughput from SSDs. It streams the output matrix to SSDs if
 memory is insufficient to store the output matrix, resulting in
-the minimum amount of data written to SSDs and maximizing I/O throughput with
-large I/O. While maximizing I/O throughput, we also compress
+the minimum amount of data written to SSDs and maximizing I/O throughput.
+We also compress
 the sparse matrix to further accelerate retrieving the sparse matrix from SSDs.
-In the parallel setting, each thread streams its own partitions for computation.
-As such, the computation in each thread is independent to each other.
+In the parallel setting, each thread streams its own partitions.
+The computation in each thread is independent.
 We deploy multiple in-memory optimizations specifically designed for power-law
 graphs. For example, we assign partitions of the sparse matrix dynamically to
 threads for load balancing, deploy cache blocking to increase CPU cache hits,
 distribute the dense matrix to NUMA nodes to fully utilize the memory
-bandwidth of a NUMA machine and organize the dense matrix in the row-major order
+bandwidth of a NUMA machine, and organize the dense matrix in the row-major order
 to explore data locality in SpMM.
 
 Our semi-external memory solution adapts to machines with different memory
@@ -90,9 +92,9 @@ in the dense matrix in memory, we reduce I/O from SSDs in SpMM. When the number
 of columns in a dense matrix increases, SEM SpMM becomes CPU bound, instead of
 I/O bound on fast SSDs.
 
-We further develop three important applications in scientific computing and
+We develop three important applications in scientific computing and
 data mining with our SEM SpMM: PageRank \cite{pagerank}, eigendecomposition
-\cite{} and non-negative matrix factorization \cite{nmf}. Each of the applications
+\cite{} and non-negative matrix factorization \cite{nmf}. Each application
 requires SpMM with different numbers of columns in the dense matrix, which
 results in different strategies of placing data in memory.
 With the three applications, we demonstrate optimal data placement for
@@ -101,20 +103,15 @@ different memory capacities.
 % What are it's key features?
 
 Our result shows that for many real-world sparse graphs, our SEM sparse matrix
-multiplication can achieve at least 60\% performance of its in-memory
-implementations and significantly outperforms Trilinos \cite{trilinos} and
-MKL \cite{mkl} on a large parallel machine with 48 CPU cores. As the number
-of columns in
-the dense matrix increases, the performance gap between the in-memory and
-SEM implementations shrinks. When the dense matrix has more than four columns,
-the system becomes CPU bottlenecked and the SEM solution achieves almost
-100\% performance of the in-memory implementation for some of our graphs.
-This suggests that the SEM solution requires sufficient memory to achieve
-performance but additional memory cannot improve performance but waste energy.
-We apply the SEM sparse matrix multiplication to some important
+multiplication can almost 100\% performance of in-memory implementations
+when the dense matrix has more than four columns. Even for sparse matrix vector
+multiplication, our SEM implementation achieves at least 60\% performance of
+its in-memory implementations and significantly outperforms Trilinos \cite{trilinos}
+and MKL \cite{mkl} on a large parallel machine with 48 CPU cores.
+\dz{We apply the SEM sparse matrix multiplication to some important
 data analysis applications that require sparse matrix multiplication and compete
 our solution with the state-of-art implementations of these applications.
-\dz{show some brief performance results.} As such, we conclude that
+} As such, we conclude that
 semi-external memory coupled with SSDs delivers a fast and energy-efficient
 solution for large-scale sparse matrix multiplication. It can also serves
 as a building block and offers new design possibilities for large-scale
