@@ -1,27 +1,28 @@
-\section{Architecture}
+\section{Hardware architecture}
 \dz{describe the hardware architecture?}
 
 \section{Sparse matrix multiplication}
 Sparse matrix multiplication on graphs leads to many random memory
 accesses and its performance is usually limited by random memory performance
-of DRAM. To scale sparse matrix multiplication to a sparse graph with billions
-of vertices, we perform this operation in semi-external memory (SEM). That is,
+of DRAM. We perform sparse matrix multiplication in semi-external memory (SEM)
+to scale to a sparse graph with billions of vertices. In semi-external memory,
 we keep the vector or the dense matrix in memory and the sparse matrix on SSDs.
 This strategy enables nearly in-memory performance while achieving
 the scalability in proportion to the ratio of non-zero entries to rows or columns
 in the sparse matrix.
 
-\subsection{The sparse matrix format}
+\subsection{Sparse matrix format}
+To support efficient sparse matrix multiplication in semi-external memory,
+we need to use an alternative format for sparse matrices to increase CPU cache
+hits and reduce the amount of data read from SSDs.
 The state-of-art numeric libraries store a sparse matrix in compressed row storage
 (CSR) or compressed column storage (CSC) format. However, these formats incur
-many CPU cache misses in sparse matrix multiplication on many real-world graphs
-due to their nearly random vertex connection. They also require a relatively
+many CPU cache misses in sparse matrix multiplication on real-world graphs
+due to nearly random vertex connection. They also require a relatively
 large storage size. For a graph with billions of edges, we have to use eight
 bytes to store the row and column indices. For semi-external memory sparse
 matrix multiplication, SSDs may become the bottleneck if a sparse matrix has
 a large storage size.
-Therefore, we need to use an alternative format for sparse matrices to increase
-CPU cache hits and reduce the amount of data read from SSDs.
 
 \begin{figure}
 \centering
@@ -37,12 +38,12 @@ involved in the multiplication with the tile are always kept in the CPU cache
 during the computation. The optimal tile size should fill the CPU cache
 with the rows of the dense matrices involved in the multiplication with
 the tile and is affected by the number of columns of the dense matrices,
-which is chosen by users. Instead of generating a sparse matrix with
+specified by applications. Instead of generating a sparse matrix with
 different tile sizes optimized for different numbers of columns in the dense
 matrices, we use a relatively small tile size and rely on the runtime system
 to optimize for different numbers of columns (in section \ref{sec:cpu}).
-In the semi-external memory, we expect that the dense matrices do not
-have more than eight columns in sparse matrix multiplication. Therefore, we
+In semi-external memory, we expect that the dense matrices have a very small
+number of columns in sparse matrix multiplication. Therefore, we
 use the tile size of $16K \times 16K$ by default to balance the matrix storage
 size and the adaptibility to different numbers of columns.
 
@@ -71,16 +72,19 @@ number and a column index entry to reduce the storage size. Since the most
 significant bit is used to indicate the beginning of a row, this format allows
 a maximum tile size of $32K \times 32K$.
 
-For many real-world graphs, many rows in a tile have only one non-zero entry,
-thanks to the sparsity of the graphs and nearly random vertex connection.
+The SCSR format potentially results in many conditional jump CPU instructions
+for sparse matrices with small cache blocking. As such, we hybrid SCSR and
+the coordinate format (COO) to store non-zero entries in a tile to reduce
+conditional jumps.
+For real-world graphs, many rows in a cache tile have only one non-zero entry,
+owing to the sparsity of the graphs and nearly random vertex connection.
 Iterating over single-entry rows requires to test the end of a row for every
-non-zero entry, resulting in many extra conditional jump CPU instructions
-in sparse matrix multiplication.
-In contrast, the coordinate format (COO) is more suitable for storing these
+non-zero entry, which leads to many conditional jumps.
+In contrast, COO is more suitable for storing these
 single-entry rows. It does not increase the storage size but significantly
-reduces the number of conditional jump instructions when we iterate
-them. As a result, we hybrid SCSR and COO to store non-zero entries in a tile
-with COO stored behind the row headers of SCSR. All non-zero entries are
+reduces the number of conditional jump instructions. As a result, we hybrid
+SCSR and COO and store non-zero entries in the COO format behind the row headers
+of SCSR (Figure \ref{tile_format}). All non-zero entries are
 stored together at the end of a tile.
 
 We organize tiles in a sparse matrix in tile rows and maintain a matrix index
@@ -91,7 +95,7 @@ Because a tile contains thousands of rows, the matrix index requires a very
 small storage size even for a billion-node graph. We keep the entire index
 in memory during sparse matrix multiplication.
 
-\subsection{The dense matrices}
+\subsection{Dense matrices}
 Dense matrices in sparse matrix multiplication are tall-and-skinny matrices
 with millions or even billions of rows but only a small number of columns.
 The number of rows in a dense matrix is determined by the number of rows or
@@ -112,6 +116,7 @@ with bit operations. The row interval size is multiple of the tile size of
 a sparse matrix so that multiplication on a tile only needs to access rows
 from a single row interval. The elements in the input dense matrix are stored
 in row-major order to increase data locality in SpMM.
+\dz{rewrite this paragraph.}
 
 \begin{figure}
 \centering
@@ -128,24 +133,21 @@ elements are stored in the row-major order.}
 
 \subsection{Semi-external memory}
 With semi-external memory, we keep the sparse matrix on SSDs and keep the dense
-matrix in memory for sparse matrix multiplication. For minimum memory
-consumption, we only need to keep the input dense matrix in memory and
-stream the output matrix to SSDs during the computation if necessary. We stream
+matrix in memory for sparse matrix multiplication. To minimize memory
+consumption, we keep only the input dense matrix in memory and
+stream the output matrix to SSDs during the computation as necessary. We also stream
 data in the sparse matrix from SSDs, which maximizes I/O throughput of the SSDs.
 
 There are three options of keeping the output dense matrix. In applications
 such as PageRank and many other graph
 algorithms, dense matrices have only a few columns, so we can keep the output
-dense matrix in memory for many of today's machines. If a machine has insufficient
+dense matrix in memory for many machines. If a machine has insufficient
 memory to keep the output dense matrix, we stream the output dense matrix
-back to SSDs during the computation. Another option is to stream the data
-to the subsequent operations
-if a machine does not have sufficient memory. \dz{I need to implement this.}
-As such, we significantly reduce I/O.
+back to SSDs during the computation. As such, we significantly reduce I/O.
 
-In some applications such as non-negative matrix factorization shown in Section
-\ref{sec:apps}, even the input dense matrix cannot fit in memory. In this case,
-we partition the input dense matrix vertically (Figure \ref{dense_mat}) so
+In some applications such as non-negative matrix factorization (Section
+\ref{sec:apps}), even the input dense matrix cannot fit in memory. In this case,
+we partition the input dense matrix vertically (Figure \ref{dense_mat} (c)) so
 that each partition has complete columns of the original dense matrix and can
 fit in memory. Each partition is stored in the row-major order to increase
 data locality. For each partition, we perform sparse matrix multiplication
@@ -155,28 +157,30 @@ where $D$ is the storage size of the input dense matrix and $M$ is the memory
 size.
 
 \subsection{Parallelization}
-When parallelizing sparse matrix multiplication, we need to take into account
+When parallelizing sparse matrix multiplication, we take into account
 semi-external memory as well as the power-law distribution of non-zero entries
 in each row of the sparse matrix.
 
 We partition a sparse matrix horizontally for parallelization (Figure
-\ref{sparse_mat}). One benefit of horizontal partitioning is to reduce
-interaction between threads. When a thread gets tile rows, it reads them
-from SSDs asynchronously and processes them completely independently. Once the tile rows
-are ready in memory, the worker thread multiplies the tile rows with the input
+\ref{sparse_mat}). Horizontal partitioning reduces interaction between threads.
+A thread reads tile rows from SSDs asynchronously and processes them
+independently. Once the tile rows
+are ready in memory, the thread multiplies the tile rows with the input
 dense matrix. The second benefit of horizontal partitioning is to reduce memory
 consumption. Reducing memory consumption is essential for semi-external memory
+sparse matrix dense matrix multiplication because keeping more columns in
+the input dense matrix in memory can significantly reduce I/O from SSDs
 (as discussed in Section \ref{sec:mem}). Horizontal partitioning ensures that
-only the thread assigned with the tile rows need to allocate memory for them.
-When a worker thread goes through all the tiles in the partition, it stores
-the intermediate result in a buffer allocated in the local memory to reduce
-remote memory access. Another benefit of horizontal partitioning is to have
+only the thread assigned with the tile rows need to allocate local memory buffers
+for them. A thread needs to store the intermediate result in a local buffer to
+reduce remote memory access in a NUMA machine when going through all the tiles
+in the partition. Horizontal partitioning uses
 a small matrix index to locate non-zero entries in the sparse matrix quickly.
 With horizontal partitioning, we only need to locate tile rows. Therefore,
 the matrix index is tiny even for a sparse matrix with billions of rows
 and we can keep the entire matrix index in memory.
 
-We maintain a global task queue for sparse matrix multiplication and a worker
+We maintain a global task queue for sparse matrix multiplication and a
 thread gets one task at a time from the queue. A task may
 indicates the computation on a \textit{super tile} row or a single tile row.
 At the beginning of the computation, threads get larger tasks; when
@@ -185,7 +189,8 @@ achieves good load balancing. The other benefit of maintaining a global
 task queue is to maintain the global execution order, which becomes essential
 when the output dense matrix needs to be written to SSDs. When a thread gets
 a task, the final computation result from the task may be small. Instead of
-writing the computation result immediately whenever it is generated, we merge
+writing the computation result immediately when it is generated, we delay
+writes in order to merge
 computation results from multiple threads and write them with a single I/O.
 As such, we need to use the global task queue to ensure that all threads are
 processing contiguous tile rows to help merge.
@@ -207,51 +212,39 @@ the CPU cache with the rows from the dense matrices involved in
 the computation with the \textit{super tile}.
 
 In spite of nearly random edge connection in a real-world graph,
-there exists regularity that allows vectorization to improve performance
+there exists regularity \dz{explain more?} that allows vectorization to improve performance
 in sparse matrix dense matrix multiplication. For each non-zero entry, we
 need to multiply it with the corresponding row from the input dense matrix
 and add the result to the corresponding row in the output dense matrix.
-These operations can be accomplished by the vector CPU instructions such as
+These operations can be accomplished by the vector CPU instructions, such as
 AVX \cite{avx}. The current implementation relies on GCC's auto-vectorization
 to translate the C code to the vector CPU instructions by predefining the matrix
 width in the code.
 
 \subsection{I/O optimizations}
-We rely on SAFS \cite{safs}, a user-space filesystem designed for a high-speed
-SSD array, to access the sparse matrix on SSDs. However, SAFS was originally
-designed for optimizing small I/O accesses, while sparse matrix multiplication
-generates much fewer but much larger I/O. Therefore, we provide additional
-optimizations to maximize sequential I/O throughput from a large SSD array.
-
 The latency of a thread context switch becomes noticeable on a high-speed SSD
 array under a sequential I/O workload and it becomes critical to avoid thread
-context switch to gain I/O performance. Originally, SAFS has a dedicated I/O
-thread for accessing each SSD to reduce lock contention in the Linux kernel.
-Under a sequential I/O workload, an I/O thread is constantly put into sleep
-due to the latency of I/O access. When I/O is complete, the I/O thread has to
-be scheduled to process the I/O completion. Instead, we use only a single I/O
+context switch to gain I/O performance. When I/O is complete, the I/O thread
+\dz{explain I/O thread} has to be scheduled. We use only a single I/O
 thread for each NUMA node, which is responsible for all of the SSDs connected
 to the NUMA node. As such, an I/O
 thread processes many more I/O requests to amortize the latency of a context
 switch. Similarly, application threads communicate with I/O threads through
-message passing when issuing I/O requests. If computation in application
-threads does not saturate CPU, SAFS will put the application threads into
-sleep while they are waiting for I/O. This results in many thread context
-switches and underutilization of both CPU and SSDs. To saturate I/O,
+message passing when issuing I/O requests. To saturate I/O,
 an application thread issues asynchronous I/O and poll for I/O to avoid thread
 context switches after completing all computation available to it.
 
-To better support access to multiple dense matrices on SSDs simultaneously, SAFS
-stripes data in a dense matrix across SSDs with a different striping order.
+To better support access to multiple dense matrices on SSDs simultaneously, we
+stripe data in a dense matrix across SSDs with a different striping order.
 In some applications such as an eigensolver and non-negative matrix factorization,
 we need to store multiple dense matrices on SSDs. To increase I/O throughput and
-potentially reduce write amplification on SSDs \cite{Tang15}, SAFS stripes data
+potentially reduce write amplification on SSDs \cite{Tang15}, we stripe data
 in dense matrices across SSDs with a large block size, on the order of megabytes.
 Such a large block size may cause storage skew for relatively small dense matrices
 on a large SSD array if every dense matrix is stored in in the same striping order.
 Furthermore, the same striping order for all dense matrices may cause skew in
-I/O access. Therefore, SAFS generates a random striping order for each dense
-matrix to evenly distribute I/O among SSDs. SAFS stores the striping order
+I/O access. Therefore, we generate a random striping order for each dense
+matrix to evenly distribute I/O among SSDs. We store the striping order
 with the dense matrix for future data retrieval. This strategy results in even
 data and I/O distribution among SSDs and improves I/O utilization. 
 
