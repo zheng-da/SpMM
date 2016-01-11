@@ -124,7 +124,7 @@
 %\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
 % --- End of Author Metadata ---
 
-\title{Semi-external Memory Sparse Matrix Multiplication on Large Pawer-law
+\title{Semi-External Memory Sparse Matrix Multiplication on Large
 	Graphs in a Multicore Architecture}
 %\subtitle{[Extended Abstract]
 %\titlenote{A full version of this paper is available as
@@ -186,23 +186,21 @@
 \maketitle
 \begin{abstract}
 Due to random memory access, sparse matrix multiplication is traditionally
-performed in memory and scales to large matrices with distributed memory.
+performed in memory and scales to large matrices using the distributed memory
+of multiple nodes.
 In contrast, we scale sparse matrix multiplication by utilizing commodity
 SSDs. We implement sparse matrix dense matrix multiplication (SpMM) in
 a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
-and the dense matrix in memory. Our implementation is specifically optimized
-for sparse graphs with power-law distribution in vertex degree and near-random
-vertex connection. As such, our SEM implementation incorporates with many in-memory
-optimizations specifically for these graphs. Coupled with many I/O optimizations,
-our SEM SpMM achieves performance
+and the dense matrix in memory. As such, the SEM implementation can incorporate
+with many in-memory optimizations for large sparse graphs with power-law
+distribution in vertex degree and near-random vertex connection. Coupled with
+many I/O optimizations, our SEM SpMM achieves performance
 comparable to our in-memory implementation on a large parallel machine and
-significantly outperforms the implementations in Trilinos and Intel MKL.
-When the dense matrix has only one column, our SEM implementation achieves
-at least 60\% performance of our in-memory implementation for all of our graphs.
-As the number of columns in the dense matrix increases, the performance gap
-between the in-memory and SEM implementations shrinks.
-When the dense matrix has more than four columns, the SEM implementation achieves
-almost 100\% performance of the in-memory implementation on some graphs.
+outperforms the implementations in Trilinos and Intel MKL.
+Our experiments show that the SEM implementation achieves almost 100\% performance
+of the in-memory implementation on some graphs when the dense matrix has more
+than four columns; it achieves at least 60\% performance of the in-memory
+implementation for all of our graphs When the dense matrix has only one column.
 We apply our SpMM to three important data analysis
 applications and show that our SSD-based implementation has performance
 comparable to the state-of-art implementations of these applications.
