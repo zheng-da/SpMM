@@ -98,23 +98,22 @@ with millions or even billions of rows but only a small number of columns.
 The number of rows in a dense matrix is determined by the number of rows or
 columns in a sparse matrix and the number of columns is determined by applications.
 We keep the input dense matrix in memory, so its size governs memory consumption
-of sparse matrix multiplication. Given the limited amount of RAM in a machine,
+of sparse matrix multiplication. To increase data locality in SpMM, the elements
+in the dense matrices are stored in row-major order.
+Given the limited amount of RAM in a machine,
 the number of columns in a dense matrix has to be small.
 
 For a non-uniform memory architecture (NUMA), we partition the input dense matrix
-horizontally and store partitions evenly across NUMA nodes to fully utilize
-the bandwidth of memory and inter-processor links in sparse matrix
-multiplication. The NUMA architecture is prevalent in today's multi-processor
-servers, where each processor connects to its own memory banks.
-%As shown in Figure \ref{dense_mat} (a),
-We assign multiple
-contiguous rows in a row interval to a partition, which is assigned to a NUMA
-node. A row interval always has $2^i$ rows for efficiently locating a row
+horizontally and store partitions evenly across NUMA nodes. The NUMA architecture
+is prevalent in today's multi-processor servers, where each processor connects
+to its own memory banks. Therefore, keeping partitions evenly across all NUMA
+nodes helps to fully utilize the bandwidth of memory and inter-processor links.
+For horizontal partitioning, we assign multiple contiguous rows in a row
+interval to a partition, which is assigned to a NUMA node. A row interval
+in a partition always has $2^i$ rows for efficiently locating a row
 with bit operations. The row interval size is multiple of the tile size of
 a sparse matrix so that multiplication on a tile only needs to access rows
-from a single row interval. The elements in the input dense matrix are stored
-in row-major order to increase data locality in SpMM.
-\dz{rewrite this paragraph.}
+from a single row interval.
 
 %\begin{figure}
 %\centering
