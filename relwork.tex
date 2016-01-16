@@ -39,4 +39,9 @@ that allows users to redefine sparse matrix dense matrix multiplication and
 dense matrix operations. By default, Anasazi uses the matrix implementations
 in Trilinos that run in the distributed memory.
 
-MKL \cite{mkl}
+Intel Math Kernel Library \cite{mkl} is an efficient and parallel linear
+algebra library with matrix operations specifically optimized for the Intel
+platform. It also provides an efficient sparse matrix multiplication optimized
+for regular sparse matrices. In contrast, our sparse matrix multiplication
+routine is specifically optimized for natural graphs with power-law distribution
+in vertex degree and near-random vertex connection.
