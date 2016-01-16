@@ -1,6 +1,3 @@
-\section{Hardware architecture}
-\dz{describe the hardware architecture?}
-
 \section{Sparse matrix multiplication}
 Sparse matrix multiplication on graphs leads to many random memory
 accesses and its performance is usually limited by random memory performance
@@ -108,8 +105,9 @@ For a non-uniform memory architecture (NUMA), we partition the input dense matri
 horizontally and store partitions evenly across NUMA nodes to fully utilize
 the bandwidth of memory and inter-processor links in sparse matrix
 multiplication. The NUMA architecture is prevalent in today's multi-processor
-servers, where each processor connects to its own memory banks. As shown in
-Figure \ref{dense_mat} (a), we assign multiple
+servers, where each processor connects to its own memory banks.
+%As shown in Figure \ref{dense_mat} (a),
+We assign multiple
 contiguous rows in a row interval to a partition, which is assigned to a NUMA
 node. A row interval always has $2^i$ rows for efficiently locating a row
 with bit operations. The row interval size is multiple of the tile size of
@@ -118,18 +116,18 @@ from a single row interval. The elements in the input dense matrix are stored
 in row-major order to increase data locality in SpMM.
 \dz{rewrite this paragraph.}
 
-\begin{figure}
-\centering
-\includegraphics[scale=0.4]{./dense_matrix.pdf}
-\caption{The data layout of tall-and-skinny dense matrices. It is partitioned
-	horizontally into many row intervals.
-(a) In the input dense matrix of SpMM, row intervals are stored across NUMA nodes and
-elements are stored in the row-major order; (b) in the eigensolver, elements
-in a dense matrix inside a row interval are stored in the column-major order;
-(c) in NMF, a dense matrix is partitioned vertically first and in each partition,
-elements are stored in the row-major order.}
-\label{dense_mat}
-\end{figure}
+%\begin{figure}
+%\centering
+%\includegraphics[scale=0.4]{./dense_matrix.pdf}
+%\caption{The data layout of tall-and-skinny dense matrices. It is partitioned
+%	horizontally into many row intervals.
+%(a) In the input dense matrix of SpMM, row intervals are stored across NUMA nodes and
+%elements are stored in the row-major order; (b) in the eigensolver, elements
+%in a dense matrix inside a row interval are stored in the column-major order;
+%(c) in NMF, a dense matrix is partitioned vertically first and in each partition,
+%elements are stored in the row-major order.}
+%\label{dense_mat}
+%\end{figure}
 
 \subsection{Semi-external memory}
 With semi-external memory, we keep the sparse matrix on SSDs and keep the dense
@@ -147,7 +145,7 @@ back to SSDs during the computation. As such, we significantly reduce I/O.
 
 In some applications such as non-negative matrix factorization (Section
 \ref{sec:apps}), even the input dense matrix cannot fit in memory. In this case,
-we partition the input dense matrix vertically (Figure \ref{dense_mat} (c)) so
+we partition the input dense matrix vertically so
 that each partition has complete columns of the original dense matrix and can
 fit in memory. Each partition is stored in the row-major order to increase
 data locality. For each partition, we perform sparse matrix multiplication
@@ -273,8 +271,8 @@ of the sparse matrix in sparse matrix multiplication. \dz{To be complete.}
 \label{sec:mem}
 The memory size has significant impact on I/O in semi-external memory.
 The minimum memory requirement for semi-external memory sparse matrix
-multiplication is $n \times c + \epsilon$, where $n$ is the number of rows or
-columns of the sparse matrix, $c$ is the size of an element in the dense matrix,
+multiplication is $n \times c + \epsilon$, where $n$ is the number of rows
+of the input dense matrix, $c$ is the element size of the dense matrix
 and $\epsilon$ is the buffer size for part of the sparse matrix and the output
 dense matrix. When a machine does not have sufficient memory to keep the entire
 input dense matrix in memory, we need multiple passes on the sparse matrix to
@@ -286,22 +284,18 @@ When a machine does not have sufficient memory to keep the entire input dense
 matrix, we should use the existing memory to keep as many columns
 in the input dense matrix in memory as possible. Although
 we can cache part of the sparse matrix, shown in Section \ref{sec:cache},
-keeping more columns in memory saves more I/O than using the same amount of
-memory to cache the sparse matrix. If we only keep one column in memory and
-use the remaining memory to store the input dense matrix, the amount of data
-read from SSDs is
-
-$IO_{in} = \lceil \frac{n \times c \times k}{M} \rceil \times S$, where $k$
-is the number of columns in the dense matrix, $M$ is the size of memory,
-$S$ is the storage size of the sparse matrix.
-
-\noindent In contrast, if all memory is used to cache the sparse matrix,
-the amount of data read from SSDs is
-
-$IO_{cache} = [S - (M - n \times c)] \times k$.
-
-\noindent $IO_{cache}$ is always larger than $IO_{in}$, as long as $S > M$
-and $M > n \times c$.
+keeping more columns of the input dense matrix in memory saves more I/O than
+using the same amount of memory to cache the sparse matrix. Assume the input
+dense matrix has $n$ rows and $k$ columns. The storage size of the sparse
+matrix is $E$ bytes and the memory size is $M$ bytes. We further assume
+we use $M'$ bytes to keep some columns of the dense matrices in memory
+($M' < M$ and ${n \times c \times k} \mod {M'} \equiv 0$)
+and the remaining memory ($M - M'$) to cache the sparse matrix.
+The amount of data in the sparse matrix read from SSDs is
+$IO_{in} = \frac{n \times c \times k}{M'} \times [E - (M - M')]$.
+Because $E > M$ in semi-external memory, we can minimize $IO_{in}$ by maximizing $M'$.
+Therefore, using memory for the input dense matrix always results in a smaller
+amount of I/O than using memory for caching sparse matrix.
 
 As the number of columns from the input dense matrix kept in memory increases,
 the bottleneck of the system
@@ -312,12 +306,55 @@ the I/O complexity becomes irrelevant and the additional memory does not improve
 the performance of sparse matrix multiplication further.
 
 Our strategy results in the minimum amount of data written to SSDs. When the output
-dense matrix cannot fit in memory, the maximum write is $n \times c \times k$.
+dense matrix cannot fit in memory, the maximum write is $N \times k$ for a square
+sparse matrix.
 In other words, the output matrix only needs to be written to SSDs at most once.
 The additional memory in the system can be used to buffer part of the output
 dense matrix to reduce the amount of data written to SSDs. Streaming the output
 matrix directly to the subsequent matrix computation can also reduce data written
 to SSDs.
+
+\subsection{I/O complexity}
+The semi-external memory (SEM) solution for sparse matrix multiplication leads
+to no more I/O than the external-memory (EM) solution for many real-world graphs.
+
+When a machine has sufficient memory to keep the entire input dense matrix
+in memory, the SEM solution only needs to read the sparse matrix and the input
+dense matrix once and write the output dense matrix once. This results in
+a minimum amount of I/O. As such, the SEM solution does not cause more I/O
+than any EM solutions.
+
+When a machine has insufficient memory to keep the input dense matrix, the SEM
+solution still leads to less I/O than the EM solution when
+$E < n \times c \times k \times t$.
+In this case, the SEM solution scans the sparse matrix multiple times. As such,
+$read_{SEM} = \frac{n \times c \times k}{M'} \times [E - (M - M')] + n \times c \times k$.
+and $write_{SEM} = m \times c \times k$. To minimize writes, the EM solution
+scans the sparse matrix once but reads the input dense matrix multiple times.
+Due to near vertex connection in real-world graphs, the EM solution needs to
+read the entire input dense matrices each time. In the parallel setting,
+the EM solution requires each thread to keep local memory buffers for portions
+of the input and output dense matrices. Assume the EM solution keeps $j$ rows
+from the input dense matrix and $i$ rows from the output dense matrix in memory
+in each thread. As such,
+$(i \times c \times k + j \times c \times k) \times t = M$.
+$i < \frac{M}{c \times k \times t}$.
+$read_{EM} = \frac{n}{i} \times n \times c \times k + E$.
+$read_{EM} > \frac{n^2 \times c^2 \times k^2 \times t}{M} + E$.
+When $n \times c \times k < E < n \times c \times k \times t$, $read_{EM} > read_{SEM}$.
+When $E \geq n \times c \times k$, $read_{EM} \geq read_{SEM}$ for any $t \geq 2$.
+
+As such, the SEM solution in practice causes less I/O in many natural graphs.
+For the natural graphs that we have seen, such as Twitter \cite{twitter},
+the Page graph \cite{web_graph} and Friendster \cite{friendster}, the number
+of edges is of $10-100 \times$ the number of vertices. Essentially,
+natural graphs have sparse edge matrices. We target multi-core machines with
+10s to 100s of threads. For most of our applications, $k$ is of size 1-30.
+For very small $k$, the SEM
+solution can keep the entire input dense matrix in memory and leads to minimum
+I/O. For a relatively larger $k$, $E < n \times c \times k \times t$ holds
+for most of natural graphs. Therefore, the SEM solution usually performs less
+I/O than EM.
 
 \section{Applications} \label{sec:apps}
 We apply sparse matrix multiplication to three important applications widely
