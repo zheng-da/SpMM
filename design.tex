@@ -219,33 +219,23 @@ to translate the C code to the vector CPU instructions by predefining the matrix
 width in the code.
 
 \subsection{I/O optimizations}
-The latency of a thread context switch becomes noticeable on a high-speed SSD
-array under a sequential I/O workload and it becomes critical to avoid thread
-context switch to gain I/O performance. When I/O is complete, the I/O thread
-\dz{explain I/O thread} has to be scheduled. We use only a single I/O
-thread for each NUMA node, which is responsible for all of the SSDs connected
-to the NUMA node. As such, an I/O
-thread processes many more I/O requests to amortize the latency of a context
-switch. Similarly, application threads communicate with I/O threads through
-message passing when issuing I/O requests. To saturate I/O,
-an application thread issues asynchronous I/O and poll for I/O to avoid thread
+Semi-external memory sparse matrix multiplication results in sequential I/O
+by streaming the sparse matrix from SSDs and potentially streaming the output
+dense matrix to SSDs. For accessing fast SSDs, the overhead of operating systems
+such as thread context switch and memory allocation becomes noticeable.
+We need to tackle these obstacles in order to achieve the maximal I/O
+throughput of fast SSDs.
+
+The latency of a thread context switch undermines the sequential I/O throughput
+of a high-speed SSD array.
+%and it becomes critical to avoid thread context switch to gain I/O performance.
+When a thread issues I/O and waits for I/O completion, the thread is switched
+out. Once I/O is complete, the thread is rescheduled for execution and there is
+latency for rescheduling. To reduce the effect of thread context switch,
+an application thread issues asynchronous I/O and polls for I/O to avoid thread
 context switches after completing all computation available to it.
 
-To better support access to multiple dense matrices on SSDs simultaneously, we
-stripe data in a dense matrix across SSDs with a different striping order.
-In some applications such as an eigensolver and non-negative matrix factorization,
-we need to store multiple dense matrices on SSDs. To increase I/O throughput and
-potentially reduce write amplification on SSDs \cite{Tang15}, we stripe data
-in dense matrices across SSDs with a large block size, on the order of megabytes.
-Such a large block size may cause storage skew for relatively small dense matrices
-on a large SSD array if every dense matrix is stored in in the same striping order.
-Furthermore, the same striping order for all dense matrices may cause skew in
-I/O access. Therefore, we generate a random striping order for each dense
-matrix to evenly distribute I/O among SSDs. We store the striping order
-with the dense matrix for future data retrieval. This strategy results in even
-data and I/O distribution among SSDs and improves I/O utilization. 
-
-When accessing a sparse matrix or a dense matrix from SSDs, we keep a set of
+When accessing a sparse matrix or a dense matrix from SSDs, we maintain a set of
 memory buffers for I/O access to reduce the overhead of memory allocation.
 We use large I/O to access matrices on SSDs to increase I/O throughput.
 The operating system usually allocate a large memory buffer with \textit{mmap()}
@@ -254,8 +244,8 @@ computationally expensive to populate
 large memory buffers frequently. When accessing high-throughput I/O devices,
 such overhead can cause substantial performance loss. Therefore, we keep a set
 of memory buffers allocated previously and reuse them for new I/O requests.
-Tile rows in a sparse matrix usually have differnt sizes, we resize a previously
-allocated memory buffer if it is too small for a new I/O request.
+For accessing a sparse matrix, tile rows usually have differnt sizes, we resize
+a previously allocated memory buffer if it is too small for a new I/O request.
 
 \subsection{Caching in sparse matrix multiplication} \label{sec:cache}
 In the hardware where memory capacity exceeds the storage size of a vector, we
