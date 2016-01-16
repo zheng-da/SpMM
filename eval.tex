@@ -197,7 +197,7 @@ but our implementations can still outperform MKL by $2-3$ times in most settings
 We further measure the performance of SEM-SpMM when the input dense matrix
 cannot fit in memory (Figure \ref{perf:spmm32}). In this experiment, we
 measure the performance of multiplying a sparse matrix with a dense matrix
-with 32 columns and the input dense matrix is stored on SSDs initially.
+of 32 columns and the input dense matrix is stored on SSDs initially.
 We need to load the input dense matrix from SSDs and write the output dense
 matrix to SSDs. 
 We perform this sparse matrix multiplication with different memory sizes.
@@ -205,9 +205,7 @@ When the memory can only fit one column in the input dense matrix, the SEM
 implementation only gets 30\% of the in-memory performance. When the memory
 can fit over four columns, the SEM implementation gets over 50\% of
 the in-memory performance. When the memory can fit the entire input dense
-matrix in memory, we get about 80\% of the in-memory performance. Therefore,
-SEM-SpMM requires certain amount of memory to achieve performance close
-to the in-memory implementation.
+matrix in memory, we get about 80\% of the in-memory performance.
 
 Two factors lead to performance loss in SEM-SpMM when the input dense matrix
 cannot fit in memory. The main performance loss comes from the loss of data
@@ -215,18 +213,28 @@ locality in SpMM when we have to partition the input dense matrix vertically.
 To understand
 the contribution of this factor, we keep the input dense matrix in memory,
 partition it vertically and perform SpMM with the vertical partitions in
-the same fashion as semi-external memory. As shown in Figure \ref{perf:spmm32},
+the same fashion as semi-external memory. As shown by the line of all-IM
+in Figure \ref{perf:spmm32},
 partitioning the dense matrix into one-column matrices contributes 60\%
 of performance loss. The performance loss caused by this factor decreases
 stably when the vertical partition size increases. On the other hand,
 the performance loss caused directly by semi-external memory is around 20\%-30\%
-regardless of the vertical partition size of the dense matrix.
+regardless of the vertical partition size of the dense matrix. When we can only
+keep a small number of columns of the input dense matrix in memory, the overhead
+from SEM is mainly caused by streaming the sparse matrix to memory. When we can
+keep more columns in memory, the overhead from SEM is mainly caused by reading
+the input dense matrix to memory.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{spmm-32cols}
-		\caption{}
+		\caption{The performance of SEM-SpMM with 32-column matrices on
+			the Friendster graph relative to the in-memory implementation.
+			SEM-SpMM is broken into multiple SEM-SpMMs based on the memory
+			size. We keep only the input dense matrix in memory (in-IM),
+			both input and output dense matrices in memory (in-out-IM),
+			all matrices in memory (all-IM) to indicate the overhead from SEM.}
 		\label{perf:spmm32}
 	\end{center}
 \end{figure}
@@ -275,10 +283,25 @@ with the state-of-art implementations on smaller graphs. For each application,
 we further show their scalability on the page graph.
 
 \subsubsection{PageRank}
-We first evaluate the performance of our SEM PageRank implementation when
-it uses different amount of memory for computation. We compare the performance
-of our implementation with the PageRank implementations in FlashGraph
-\cite{flashgraph} and GraphLab create \cite{}.\dz{to be complete}
+We first evaluate the performance of our SEM PageRank implementation described
+in Section \ref{sec:pagerank}. This implementation requires the input vector
+to be in memory, but it is optional to keep the output vector and the degree
+vector in memory. We compare the performance of our implementation with
+the PageRank implementations in FlashGraph \cite{flashgraph}, the fastest PageRank
+implementation to our knowledge, and GraphLab create \cite{}.
+
+\dz{Measure the performance on other directed graphs.}
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{pagerank}
+		\caption{The runtime of PageRank using SpMM in 30 iterations. The SEM
+			implementation allows to keep different numbers of vectors in memory.
+			We compare this implementation with other implementations.}
+		\label{perf:pagerank}
+	\end{center}
+\end{figure}
 
 \subsubsection{Eigensolver}
 
@@ -308,16 +331,6 @@ vector subspace on SSDs.
 \dz{We need an experiment to show how well additional memory can help improve
 performance.}
 
-%\begin{figure}
-%	\begin{center}
-%		\footnotesize
-%		\include{eigen-mem}
-%		\caption{The memory consumptioin of the three KrylovSchur
-%		implementations.}
-%		\label{perf:eigen_mem}
-%	\end{center}
-%\end{figure}
-
 We evaluate the scalability of the SEM eigensolver with the page graph with 3.4 billion
 vertices and 129 billion edges. Because the page graph is a directed graph,
 its adjacency matrix is asymmetric and we perform singular value decomposition
@@ -335,8 +348,6 @@ to compute eigenvalues on the page graph with 1TB RAM.
 			\#eigenvalues & runtime & memory & read & write \\
 			\hline
 			8 & 4.2 hours & 120GB & 145TB & 4TB \\
-			\hline
-			32 & 13.3 hours &  &  & \\
 			\hline
 		\end{tabular}
 		\normalsize
@@ -357,3 +368,12 @@ eigensolver is able to scale to a much larger eigenvalue problem on our
 
 \subsubsection{NMF}
 \dz{to be complete}
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{NMF}
+		\caption{The runtime of NMF in one iteration.}
+		\label{perf:NMF}
+	\end{center}
+\end{figure}
