@@ -41,13 +41,24 @@ too expensive for many users.
 
 %What is the nature of your solution?
 
-We explore an alternative solution that scales sparse matrix dense matrix
-multiplication (SpMM) by utilizing commodity solid-state drives (SSDs) and
+There is a trend of scaling up a machine for high performance computing.
+Such a machine typically has multiple processors with many CPU cores and
+a large amount of memory. The machines can also be equipped with fast flash
+memory such as solid-state drives (SSDs) to further extend memory capacity.
+This conforms to node design for supercomputers.
+
+We explore a solution that scales sparse matrix dense matrix multiplication
+(SpMM) on a multi-core machine with commodity solid-state drives (SSDs) and
 perform this operation in a semi-external memory (SEM) fashion
 \cite{flashgraph, Abello98}. That is, we keep the sparse matrix on SSDs and
-the dense matrix in memory. Even though SpMM can be implemented with SpMV,
+the dense matrix in memory. \dz{How to define SEM more formally?}
+To enable semi-external memory for sparse matrix multiplication, we assume
+that the memory of the machine is sufficient to keep at least one column
+of the input dense matrix but is insufficient to hold the sparse matrix
+in memory. Even though SpMM can be implemented with SpMV,
 we optimize SpMM directly to explore data locality in SpMM and reduce I/O
 in semi-external memory. Given fast SSDs, we demonstrate that the SEM solution
+uses the resource of a multi-core machine well and
 can achieve performance comparable to state-of-art in-memory implementations
 for sparse matrix multiplication while increasing the scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
