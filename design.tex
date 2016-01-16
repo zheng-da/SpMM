@@ -17,7 +17,7 @@ The state-of-art numeric libraries store a sparse matrix in compressed row stora
 many CPU cache misses in sparse matrix multiplication on real-world graphs
 due to nearly random vertex connection. They also require a relatively
 large storage size. For a graph with billions of edges, we have to use eight
-bytes to store the row and column indices. For semi-external memory sparse
+bytes to store the row and column indices. For SEM sparse
 matrix multiplication, SSDs may become the bottleneck if a sparse matrix has
 a large storage size.
 
@@ -379,22 +379,21 @@ and does not write any data to SSDs. As more memory can be used, we can
 further keep the degree vector and even cache part of the sparse matrix.
 
 \subsection{Eigendecomposition}
-Eigendecomposition and singular value decomposition (SVD) is another commonly
+Eigendecomposition is another commonly
 used application that requires sparse matrix multiplication. Many
 algorithms \cite{Lanczos, IRLM, krylovschur} and frameworks
 \cite{arpack, anasazi, slepc} have been developed to solve a large eigenvalue
 problem.
 
 We take advantage of the Anasazi eigensolver framework \cite{anasazi} and
-replace its original matrix operations with our semi-external memory sparse
+replace its original matrix operations with our SEM sparse
 matrix multiplication and external-memory dense matrix operations. To compute
 eigenvalues of a $n \times n$ matrix, many eigenvalue algorithms for a large
 sparse matrix require to construct a vector subspace with a sequence of
 sparse matrix multiplication and each vector in the subspace has the length of $n$.
 Due to the sparsity of many real-world graphs such as social networks,
-the vector subspace requires substantial storage size. Therefore, we keep
-some of the vectors in the subspace on SSDs and they are stored with the layout
-shown in Figure \ref{dense_mat}. In addition to sparse matrix
+the vector subspace requires substantial storage size and we keep
+some of the vectors in the subspace on SSDs. In addition to sparse matrix
 multiplication, eigensolvers perform some dense matrix operations on the subspace.
 For example, eigensolvers need to orthogonalize the vectors in the subspace with
 dense matrix multiplication. The Anasazi eigensolvers have block extension to
@@ -427,14 +426,14 @@ recommender systems. NMF is also applied to graphs, for example, to find communi
 Many algorithms are designed to solve NMF and here we describe an algorithm
 \cite{nmf} that requires a sequence of sparse matrix multiplication.
 The algorithm use multiplicative update rules and update matrices $W$ and $H$
-alternately. In each iteration, the algorithm first fixes $W$ and updates $H$.
+alternately. In each iteration, the algorithm first fixes $W$ to update $H$
 and then fixes $H$ to update $W$.
 
 $H_{a\mu} \leftarrow H_{a\mu} \frac{{(W^TA)}_{a\mu}}{{(W^TWH)}_{a\mu}}$,
 $W_{ia} \leftarrow W_{ia} \frac{{(AH^T)}_{ia}}{{(WHH^T)}_{ia}}$
 
-We apply semi-external memory sparse matrix multiplication to NMF differently
-based on the memory size and the number of columns in $W$ and $H$. Thanks to
+We apply SEM sparse matrix multiplication to NMF differently
+based on the memory size and the number of columns in $W$ and $H$. Due to
 the sparsity of a graph, it is possible that the non-negative matrices $W$ and
 $H$ may require the storage as large as the sparse matrix and no longer fit in
 memory. Therefore, we need to partition $W$ and $H$ vertically and run multiple
@@ -445,10 +444,7 @@ The choices of data placement for NMF are
 shown as follows. If memory is small, all memory should be used to keep as many
 columns in the input dense matrix as possible to reduce I/O. The original sparse
 matrix multiplication is broken into multiple multiplications. We stream the output
-dense matrices of the first few multiplications to SSDs and stream the output matrix
-of the last multiplication to the subsequent matrix operations along with
-the previous output matrices to save I/O.
-If a machine has sufficient memory to keep the entire input dense matrix in memory,
-we can stream the entire output dense matrix to the subsequent matrix operations.
-The additional memory in the machine can be used to buffer the final output
-dense matrix of the sequence of the dense matrix operations.
+dense matrices to SSDs and construct some of the input dense matrices for the next
+sparse matrix multiplications in memory to reduce the latency of loading
+the input dense matrix to memory. The additional memory in a machine can be used
+to buffer the output dense matrix of sparse matrix multiplication.
