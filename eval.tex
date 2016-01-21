@@ -111,7 +111,7 @@ matrix multiplication (SEM-SpMM) on SSDs and write the output dense matrix to
 SSDs. We apply the I/O optimizations to sparse matrix vector multiplication
 in the following order to show their effectiveness: \dz{to be complete}
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
-	\item compress a sparse matrix,
+	\item compact sparse matrix format,
 	\item use I/O polling (\textit{polling}),
 	\item use a per-thread buffer pool to allocate memory for I/O
 		(\textit{buf pool}),
@@ -300,18 +300,21 @@ have 16 vectors in the subspace.
 	\begin{center}
 		\footnotesize
 		\include{eigen-runtime-8ev}
-		\caption{The average runtime of an iteration of the Trilinos KrylovSchur
-			and our SEM and IM KrylovSchur when computing eight eigenvalues.
-			For the SEM KrylovSchur, we keep the entire vector subspace on SSDs.}
+		\caption{The preformance of our SEM KrylovSchur and the Trilinos KrylovSchur
+			eigensolvers relative to our IM KrylovSchur when computing eight
+			eigenvalues. SEM-min keeps the entire vector subspace on SSDs and
+		SEM-max keeps the entire vector subspace in memory.}
 		\label{fig:eigen}
 	\end{center}
 \end{figure}
 
 For computing eight eigenvalues, our SEM eigensolver achieves at least 40\%
 performance of our in-memory eigensolver and has performance comparable to
-the Trilinos KrylovSchur eigensolver (Figure \ref{fig:eigen}). The SEM
-eigensolver keeps the entire vector subspace on SSDs, which results in
-the smallest memory consumption of the SEM eigensolver.
+the Trilinos KrylovSchur eigensolver (Figure \ref{fig:eigen}). When the SEM
+eigensolver keeps the entire vector subspace on SSDs, we get the smallest
+memory consumption but also the lowest performance. When the SEM eigensolver
+can keep the entire vector subspace in memory, we achieve $70\%-80\%$
+performance of the in-memory eigensolver, at the cost of more memory consumption.
 
 \dz{We need an experiment to show how well additional memory can help improve
 performance.}
