@@ -168,30 +168,6 @@ smaller for all graphs as the number of columns in the dense matrices increases.
 Eventually, SEM-SpMM becomes CPU-bound and achieves the same performance as
 IM-SpMM.
 
-When comparing the performance of our SpMM implementations with state-of-art
-in-memory SpMM implementations, both IM-SpMM and SEM-SpMM significantly
-outperform the MKL and Trilinos implementations on the natural graphs (Figure
-\ref{perf:spmm}). The performance of different implementations
-of sparse matrix multiplication with different numbers of columns in the dense
-matrices on the Friendster graph. The performance result is very similar
-on other graphs. The Trilinos SpMM is optimized for sparse matrix vector
-multiplication (SpMV). But even for SpMV, SEM-SpMV outperforms Trilinos by
-almost 30\%. The MKL SpMM performs better when the dense matrices have more columns,
-but our implementations can still outperform MKL by a factor of $2-3$ in most
-settings.
-
-\dz{I should add another line for distributed Trilinos.}
-
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\include{SpMM-Friendster}
-		\caption{The runtime of IM-SpMM, SEM-SpMM, the MKL and the Trilinos
-			implementations on the Friendster graph.}
-		\label{perf:spmm}
-	\end{center}
-\end{figure}
-
 \subsubsection{The input dense matrix cannot fit in memory}
 
 We further measure the performance of SEM-SpMM when the input dense matrix
@@ -244,6 +220,59 @@ from SEM is mainly caused by streaming the sparse matrix to memory. When we can
 keep more columns in memory, the overhead from SEM is mainly caused by reading
 the input dense matrix to memory.
 
+\subsubsection{SEM-SpMM vs. other in-memory SpMM}
+
+We compare our SpMM implementation with other state-of-art in-memory SpMM
+implementations including the Intel MKL and Trilinos implementations on
+natural graphs. The Trilinos implementation can run both in shared memory
+and distributed memory, so we measure its performance in our 48-core machine
+as well as a EC2 cluster. We run Trilinos in the largest EC2 instances r3.8xlarge
+with 16 physical CPU cores and 244GB of RAM each, which is is optimized for
+memory-intensive applications.
+
+Both of our IM-SpMM and SEM-SpMM significantly outperform the MKL and Trilinos
+implementations on the natural graphs in the 48-core machine. Figure \ref{perf:spmm}
+shows the performance of different implementations on different graphs.
+The Trilinos SpMM is optimized for sparse matrix vector
+multiplication (SpMV). But even for SpMV, SEM-SpMV outperforms Trilinos by
+almost 30\%. The MKL SpMM performs better when the dense matrices have more columns,
+but our implementations can still outperform MKL by a factor of $2-3$ in most
+settings.
+
+\begin{figure}[t!]
+	\footnotesize
+	\centering
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\include{SpMV-awesomer}
+		\vspace{-10pt}
+		\caption{SpMV}
+		\label{perf:spmv}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\include{SpMM-awesomer}
+		\vspace{-10pt}
+		\caption{SpMM with a dense matrix of 8 columns.}
+		\label{perf:spmm8}
+	\end{subfigure}
+	\vspace{3pt}
+	\caption{The relative performance of different sparse matrix multiplication
+		implementations on the 48-core machine. All performance is normalized by
+	IM-SpMM.}
+	\label{perf:spmm}
+\end{figure}
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{SpMV-EC2}
+		\caption{}
+		\label{perf:ec2}
+	\end{center}
+\end{figure}
+
+
 \subsection{Performance of the applications}
 
 We evaluate the performance of the implementations of the applications in
@@ -290,7 +319,9 @@ graph.
 
 We evaluate the performance of our SEM eigensolver and compare its performance
 with our in-memory eigensolver and the Trilinos KrylovSchur eigensolver.
-We compute eight eigenvalues on the smaller undirected graphs
+Usually, spectral analysis \cite{} only requires a very small number of
+eigenvalues, so we compute eight eigenvalues in this experiment. We perform
+eigendecomposition on the smaller undirected graphs
 in Table \ref{graphs} and compute singular value decomposition (SVD) on
 the Page graph. Only our SEM eigensolver is able to compute eigenvalues
 on the page graph. In all experiments, we use one for the block size and
@@ -313,37 +344,8 @@ performance of our in-memory eigensolver and has performance comparable to
 the Trilinos KrylovSchur eigensolver (Figure \ref{fig:eigen}). When the SEM
 eigensolver keeps the entire vector subspace on SSDs, we get the smallest
 memory consumption but also the lowest performance. When the SEM eigensolver
-can keep the entire vector subspace in memory, we achieve $70\%-80\%$
+can keep the entire vector subspace in memory, it achieves $70\%-80\%$
 performance of the in-memory eigensolver, at the cost of more memory consumption.
-
-\dz{We need an experiment to show how well additional memory can help improve
-performance.}
-
-\begin{table}
-	\begin{center}
-		\small
-		\begin{tabular}{|c|c|c|c|c|}
-			\hline
-			\#eigenvalues & runtime & memory & read & write \\
-			\hline
-			8 & 4.2 hours & 120GB & 145TB & 4TB \\
-			\hline
-		\end{tabular}
-		\normalsize
-	\end{center}
-	\caption{The performance and resource consumption of computing eigenvalues
-	on the page graph.}
-	\label{pg_ev}
-\end{table}
-
-%The SEM eigensolver computes a fairly large number of eigenvalues within a reasonable
-%amount of time and consumes a fairly small amount of resources given the large
-%size of the eigenvalue problem.
-%The average I/O throughput during the computation of 8 eigenvalues is about
-%10GB/s, which is very close to the maximal I/O throughput provided by
-%the SSD array. The relative small memory footprint suggests that the SEM
-%eigensolver is able to scale to a much larger eigenvalue problem on our
-%1TB-RAM machine.
 
 \subsubsection{NMF}
 We evaluate the performance of our NMF implementation on the directed graphs
