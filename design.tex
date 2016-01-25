@@ -247,20 +247,11 @@ of memory buffers allocated previously and reuse them for new I/O requests.
 For accessing a sparse matrix, tile rows usually have differnt sizes, we resize
 a previously allocated memory buffer if it is too small for a new I/O request.
 
-\subsection{Caching in sparse matrix multiplication} \label{sec:cache}
-In the hardware where memory capacity exceeds the storage size of a vector, we
-can use additional memory to cache a portion of the sparse matrix if sparse matrix
-multiplication is required in an iterative algorithm. We cannot rely on
-the page cache in SAFS \cite{sa-cache} to buffer some portion of the sparse matrix
-because streaming a sparse matrix to memory always evict existing data in the page
-cache and generates zero cache hits. Therefore, we explicitly cache some portion
-of the sparse matrix in sparse matrix multiplication. \dz{To be complete.}
-
 \subsection{The impact of the memory size on I/O in semi-external memory}
 \label{sec:mem}
 The memory size has significant impact on I/O in semi-external memory.
 The minimum memory requirement for semi-external memory sparse matrix
-multiplication is $n \times c + \epsilon$, where $n$ is the number of rows
+multiplication is $n c + \epsilon$, where $n$ is the number of rows
 of the input dense matrix, $c$ is the element size of the dense matrix
 and $\epsilon$ is the buffer size for part of the sparse matrix and the output
 dense matrix. When a machine does not have sufficient memory to keep the entire
@@ -270,18 +261,20 @@ and for a fixed memory size, reducing memory consumption is
 essential for semi-external memory.
 
 When a machine does not have sufficient memory to keep the entire input dense
-matrix, we should use the existing memory to keep as many columns
-in the input dense matrix in memory as possible. Although
-we can cache part of the sparse matrix, shown in Section \ref{sec:cache},
+matrix, we should use the existing memory to keep as many columns in the input
+dense matrix in memory as possible. Although we can cache part of the sparse
+matrix,
 keeping more columns of the input dense matrix in memory saves more I/O than
 using the same amount of memory to cache the sparse matrix. Assume the input
 dense matrix has $n$ rows and $k$ columns. The storage size of the sparse
 matrix is $E$ bytes and the memory size is $M$ bytes. We further assume
 we use $M'$ bytes to keep some columns of the dense matrices in memory
-($M' < M$ and ${n \times c \times k} \mod {M'} \equiv 0$)
+($M' < M$, ${n c k} \mod {M'} \equiv 0$)
 and the remaining memory ($M - M'$) to cache the sparse matrix.
 The amount of data in the sparse matrix read from SSDs is
-$IO_{in} = \frac{n \times c \times k}{M'} \times [E - (M - M')]$.
+\begin{equation*}
+IO_{in} = \frac{n c k}{M'} [E - (M - M')]
+\end{equation*}
 Because $E > M$ in semi-external memory, we can minimize $IO_{in}$ by maximizing $M'$.
 Therefore, using memory for the input dense matrix always results in a smaller
 amount of I/O than using memory for caching sparse matrix.
@@ -295,7 +288,7 @@ the I/O complexity becomes irrelevant and the additional memory does not improve
 the performance of sparse matrix multiplication further.
 
 Our strategy results in the minimum amount of data written to SSDs. When the output
-dense matrix cannot fit in memory, the maximum write is $N \times k$ for a square
+dense matrix cannot fit in memory, the maximum write is $N k$ for a square
 sparse matrix.
 In other words, the output matrix only needs to be written to SSDs at most once.
 The additional memory in the system can be used to buffer part of the output
@@ -315,23 +308,27 @@ than any EM solutions.
 
 When a machine has insufficient memory to keep the input dense matrix, the SEM
 solution still leads to less I/O than the EM solution when
-$E < n \times c \times k \times t$.
-In this case, the SEM solution scans the sparse matrix multiple times. As such,
-$read_{SEM} = \frac{n \times c \times k}{M'} \times [E - (M - M')] + n \times c \times k$.
-and $write_{SEM} = m \times c \times k$. To minimize writes, the EM solution
+$E < n c k t$.
+In this case, the SEM solution scans the sparse matrix multiple times.
+\begin{equation*}
+read_{SEM} = \frac{n c k}{M'} [E - (M - M')] + n c k
+\end{equation*}
+To minimize writes, the EM solution
 scans the sparse matrix once but reads the input dense matrix multiple times.
 Due to near vertex connection in real-world graphs, the EM solution needs to
 read the entire input dense matrices each time. In the parallel setting,
 the EM solution requires each thread to keep local memory buffers for portions
 of the input and output dense matrices. Assume the EM solution keeps $j$ rows
 from the input dense matrix and $i$ rows from the output dense matrix in memory
-in each thread. As such,
-$(i \times c \times k + j \times c \times k) \times t = M$.
-$i < \frac{M}{c \times k \times t}$.
-$read_{EM} = \frac{n}{i} \times n \times c \times k + E$.
-$read_{EM} > \frac{n^2 \times c^2 \times k^2 \times t}{M} + E$.
-When $n \times c \times k < E < n \times c \times k \times t$, $read_{EM} > read_{SEM}$.
-When $E \geq n \times c \times k$, $read_{EM} \geq read_{SEM}$ for any $t \geq 2$.
+in each thread.
+\begin{equation*}
+(i c k + j c k) t = M => i < \frac{M}{c k t}
+\end{equation*}
+\begin{equation*}
+read_{EM} = \frac{n}{i} n c k + E =>  read_{EM} > \frac{n^2 c^2 k^2 t}{M} + E
+\end{equation*}
+When $n c k < E < n c k t$, $read_{EM} > read_{SEM}$.
+When $E \geq n c k$, $read_{EM} \geq read_{SEM}$ for any $t \geq 2$.
 
 As such, the SEM solution in practice causes less I/O in many natural graphs.
 For the natural graphs that we have seen, such as Twitter \cite{twitter},
@@ -341,7 +338,7 @@ natural graphs have sparse edge matrices. We target multi-core machines with
 10s to 100s of threads. For most of our applications, $k$ is of size 1-30.
 For very small $k$, the SEM
 solution can keep the entire input dense matrix in memory and leads to minimum
-I/O. For a relatively larger $k$, $E < n \times c \times k \times t$ holds
+I/O. For a relatively larger $k$, $E < n c k t$ holds
 for most of natural graphs. Therefore, the SEM solution usually performs less
 I/O than EM.
 
@@ -352,7 +349,7 @@ eigendecomposition \cite{anasazi} and non-negative matrix factorization \cite{nm
 Each application demonstrates a a slightly different strategy of using memory
 for sparse matrix multiplication.
 
-\subsection{PageRank}
+\subsection{PageRank} \label{sec:pagerank}
 PageRank is an algorithm to rank the Web pages by using hyperlinks between Web
 pages. It was first used by Google and is identified as one of the top 10 data
 mining algorithms \cite{top10}. PageRank is a representative of a set of graph
@@ -360,14 +357,29 @@ algorithms that can be expressed with sparse matrix multiplication or generalize
 sparse matrix multiplication. Other important examples are label propagation \cite{}
 and belief propagation \cite{}. The algorithm runs iteratively and its update
 rule for each Web pages in an iteration is
-$PR(u) = \frac{1-d}{N} + d \times \sum\limits_{v \in B(u)} \frac{PR(v)}{L(v)}$,
+\begin{equation*}
+PR(u) = \frac{1-d}{N} + d \sum\limits_{v \in B(u)} \frac{PR(v)}{L(v)}
+\end{equation*}
 where $B(u)$ denotes the neighbor list of vertex $u$ and $L(v)$ denotes
-the out-degree of vertex $v$. The PageRank algorithm can be expressed as sparse
-matrix multiplication with the R code below.
+the out-degree of vertex $v$. The PageRank algorithm is implemented with sparse
+matrix multiplication (Figure \ref{code:pagerank}).
 
+
+\begin{figure}
+\centering
 %\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
-pr2 <- (1-d)/N+d*A\%*\%(pr1/deg)
+\begin{lstlisting}
+while (L1 >= epsilon && niters < max.niters) {
+	pr2 <- d/N+(1-d)*(A %*% (pr1/out.deg))
+	L1 <- sum(abs(pr1-pr2))
+	pr1 <- pr2
+	niters <- niters + 1
+}
+\end{lstlisting}
 %\end{minted}
+\caption{The implementation of PageRank with SpMM.}
+\label{code:pagerank}
+\end{figure}
 
 Based on the memory size, we can place different data in memory to reduce I/O.
 When the memory can only fit a single vector, each iteration needs
@@ -428,9 +440,10 @@ Many algorithms are designed to solve NMF and here we describe an algorithm
 The algorithm use multiplicative update rules and update matrices $W$ and $H$
 alternately. In each iteration, the algorithm first fixes $W$ to update $H$
 and then fixes $H$ to update $W$.
-
-$H_{a\mu} \leftarrow H_{a\mu} \frac{{(W^TA)}_{a\mu}}{{(W^TWH)}_{a\mu}}$,
-$W_{ia} \leftarrow W_{ia} \frac{{(AH^T)}_{ia}}{{(WHH^T)}_{ia}}$
+\begin{equation*}
+H_{a\mu} \leftarrow H_{a\mu} \frac{{(W^TA)}_{a\mu}}{{(W^TWH)}_{a\mu}},
+W_{ia} \leftarrow W_{ia} \frac{{(AH^T)}_{ia}}{{(WHH^T)}_{ia}}
+\end{equation*}
 
 We apply SEM sparse matrix multiplication to NMF differently
 based on the memory size and the number of columns in $W$ and $H$. Due to
