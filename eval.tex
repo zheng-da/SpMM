@@ -70,11 +70,7 @@ the optimizations incrementally in the following order:
 	\item partition dense matrices for NUMA (\textit{NUMA}),
 	\item partition the sparse matrix in both dimensions into tiles of
 		$16K \times 16K$ (\textit{Cache blocking}),
-	\item organize multiple physical tiles into a super tile to fill CPU cache
-		(\textit{Super tile}),
 	\item use CPU vectorization instructions (\textit{Vec}),
-	\item allocate a local buffer to store the intermediate multiplication
-		result on tiles(\textit{Local write}),
 	\item combine the SCSR and COO format to reduce the number of conditional
 		jump CPU instructions (\textit{SCSR + COO}),
 \end{itemize}
@@ -231,13 +227,12 @@ with 16 physical CPU cores and 244GB of RAM each, which is is optimized for
 memory-intensive applications.
 
 Both of our IM-SpMM and SEM-SpMM significantly outperform the MKL and Trilinos
-implementations on the natural graphs in the 48-core machine. Figure \ref{perf:spmm}
-shows the performance of different implementations on different graphs.
-The Trilinos SpMM is optimized for sparse matrix vector
-multiplication (SpMV). But even for SpMV, SEM-SpMV outperforms Trilinos by
-almost 30\%. The MKL SpMM performs better when the dense matrices have more columns,
-but our implementations can still outperform MKL by a factor of $2-3$ in most
-settings.
+implementations on the natural graphs in the 48-core machine (Figure \ref{perf:spmm}).
+The Trilinos SpMM is optimized for sparse matrix vector multiplication (SpMV),
+but even SEM-SpMV constantly outperforms Trilinos by a factor of $2-3$.
+The MKL SpMM performs better when the dense matrices have more columns,
+but our SEM-SpMM can still almost twice as fast as MKL when the dense matrix
+has eight columns.
 
 \begin{figure}[t!]
 	\footnotesize
@@ -267,7 +262,8 @@ settings.
 	\begin{center}
 		\footnotesize
 		\include{SpMV-EC2}
-		\caption{}
+		\caption{The runtime of our SpMV implementations in our 48-core machine
+			compared with Trilinos in EC2 clusters.}
 		\label{perf:ec2}
 	\end{center}
 \end{figure}
