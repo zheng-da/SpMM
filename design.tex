@@ -354,9 +354,9 @@ PageRank is an algorithm to rank the Web pages by using hyperlinks between Web
 pages. It was first used by Google and is identified as one of the top 10 data
 mining algorithms \cite{top10}. PageRank is a representative of a set of graph
 algorithms that can be expressed with sparse matrix multiplication or generalized
-sparse matrix multiplication. Other important examples are label propagation \cite{}
-and belief propagation \cite{}. The algorithm runs iteratively and its update
-rule for each Web pages in an iteration is
+sparse matrix multiplication. Other important examples are label propagation
+\cite{label_prop} and belief propagation \cite{Yedidia03}. The algorithm runs
+iteratively and its update rule for each Web pages in an iteration is
 \begin{equation*}
 PR(u) = \frac{1-d}{N} + d \sum\limits_{v \in B(u)} \frac{PR(v)}{L(v)}
 \end{equation*}
