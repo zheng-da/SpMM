@@ -56,56 +56,59 @@ undirected version for each of the synthetic graphs. The page graph is clustered
 by domain, generating good CPU cache hit rates in sparse matrix multiplication.
 
 \subsection{Optimizations on sparse matrix multiplication}
-We first deploy a set of in-memory optimizations to implement a fast
-in-memory sparse matrix multiplication and then deploy a set of I/O
-optimizations to further speed up this operation in semi-external memory.
-We apply the memory and I/O optimizations incrementally to illustrate
-the effectiveness of each optimization.
+Accelerating SEM SpMM requires both memory and I/O optimizations. To illustrate
+the effectiveness of each optimization, we apply the memory and I/O optimizations
+incrementally. When only applying memory optimizations to reduce the overhead
+of memory access, SEM SpMM may become I/O bound and it may be difficult to
+demonstrate their effectiveness. Similarly, it may be difficult to demonstrate
+the effectiveness of I/O optimizations when applying them alone. Thus, we first
+deply memory optimizations on in-memory sparse matrix multiplication and then
+deply I/O optimizations on SEM SpMM with all memory optimizations.
 
-For memory optimizations, we start with an implementation that performs sparse
-matrix multiplication on a sparse matrix in the CSR format and apply
-the optimizations incrementally in the following order:
+For memory optimizations, we start with an in-memory implementation that
+performs sparse matrix multiplication on a sparse matrix in the CSR format
+and apply the optimizations incrementally in the following order:
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
-	\item load balancing \dz{to be complete}
+	\item dispatch partitions of a sparse matrix to threads dynamically for
+		computation to balance load (\textit{Load balance}),
 	\item partition dense matrices for NUMA (\textit{NUMA}),
-	\item partition the sparse matrix in both dimensions into tiles of
-		$16K \times 16K$ (\textit{Cache blocking}),
-	\item use CPU vectorization instructions (\textit{Vec}),
-	\item combine the SCSR and COO format to reduce the number of conditional
-		jump CPU instructions (\textit{SCSR + COO}),
+	\item organize the non-zero entries in a sparse matrix into tiles to
+		increase CPU cache hits (\textit{Cache blocking}),
+	\item use CPU vectorization instructions to accelerate arithmetic
+		computation (\textit{Vec}),
 \end{itemize}
 
 Figure \ref{perf:spmm_opt} shows that almost all of these optimizations have
 positive effect on sparse matrix multiplication and all optimizations
-together speed up the operation by $2-4$ times. The degree of effectiveness
+together speed up SpMM by $3-5$ times. The degree of effectiveness
 varies between different graphs and different numbers of columns in
-the dense matrices. For example, the NUMA optimization is more effective when
-the dense matrices have more columns because more columns in the dense matrices
-require more memory bandwidth. Cache blocking is very effective when
-the dense matrices have fewer columns because it can effectively increase CPU
-cache hits. When there are more columns in the dense matrices, data locality
-improves and the effectiveness of cache blocking becomes less noticeable.
-When there are too many columns, the rows from
-the input and output matrices can no longer be in the CPU cache. Thus, it even
-has a little negative effect on the Friendster graph when the dense matrices
-have $16$ columns. With all optimizations, we have a fast in-memory sparse
-matrix dense matrix multiplication, denoted by IM-SpMM.
+the dense matrices. \dz{I need to come up better explanations for the speedup.}
+%For example, the NUMA optimization is more effective when
+%the dense matrices have more columns because more columns in the dense matrices
+%require more memory bandwidth. Cache blocking is very effective when
+%the dense matrices have fewer columns because it can effectively increase CPU
+%cache hits. When there are more columns in the dense matrices, data locality
+%improves and the effectiveness of cache blocking becomes less noticeable.
+%When there are too many columns, the rows from the input and output matrices
+%can no longer be in the CPU cache.
+With all optimizations, we have a fast
+in-memory sparse matrix dense matrix multiplication, denoted by IM-SpMM.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{SpMM_optimize}
-		\caption{The effectiveness of the SpMM optimizations on the Friendster
+		\caption{The speedup of the in-memory SpMM optimizations on the Friendster
 			graph (F) and the Twitter graph (T) for different numbers of
 			columns in the dense matrices.}
 		\label{perf:spmm_opt}
 	\end{center}
 \end{figure}
 
-We modify the IM-SpMM implementation above for the semi-external memory sparse
-matrix multiplication (SEM-SpMM) on SSDs and write the output dense matrix to
-SSDs. We apply the I/O optimizations to sparse matrix vector multiplication
-in the following order to show their effectiveness: \dz{to be complete}
+We implement the base version of SEM-SpMM based on the IM-SpMM implementation
+above. In this implementation, we write the output dense matrix to SSDs.
+We apply the I/O optimizations to SEM SpMM in the following order to show
+their effectiveness: \dz{to be complete}
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
 	\item compact sparse matrix format,
 	\item use I/O polling (\textit{polling}),
@@ -115,9 +118,9 @@ in the following order to show their effectiveness: \dz{to be complete}
 		to SSDs with large I/O (\textit{global output}).
 \end{itemize}
 
-Sparse matrix vector multiplication requires substantial I/O throughput and
-any improvement on I/O improves the overall performance of this operation.
-Compressing the sparse matrix helps us to accelerate the information retrieval
+Sparse matrix vector multiplication on some of the graphs requires substantial
+I/O throughput and any improvement on I/O improves its overall performance.
+Using a compact sparse matrix format accelerates the information retrieval
 of the sparse matrix and gives us the best performance boost among all
 optimizations. By reducing the number of thread context switches, we can
 achieve substantial performance improvement. Memory allocation with
@@ -127,9 +130,8 @@ so we should use a buffer pool to reduce memory allocation when accessing SSDs.
 \subsection{The performance of sparse matrix multiplication}
 
 We evaluate the performance of SEM-SpMM and compare its performance with
-our in-memory implementation (IM-SpMM) as well as the MKL and Trilinos
-implementation (Figure \ref{perf:spmm}). The MKL and Trilinos SpMM cannot run
-on the page graph.
+our IM-SpMM as well as the MKL and Trilinos implementation (Figure
+\ref{perf:spmm}). The MKL and Trilinos SpMM cannot run on the page graph.
 
 \subsubsection{The dense matrices can fit in memory}
 
@@ -158,11 +160,13 @@ matrices involved in SpMM have a small number of columns.
 %	\end{center}
 %\end{figure}
 
-SEM-SpMM gets at least 60-100\% performance of IM-SpMM in all graphs (Figure
-\ref{perf:spmm_comp}). The performance gap between SEM-SpMM and IM-SpMM gets
-smaller for all graphs as the number of columns in the dense matrices increases.
-Eventually, SEM-SpMM becomes CPU-bound and achieves the same performance as
-IM-SpMM.
+SEM-SpMM gets at least 65-100\% performance of IM-SpMM in all graphs (Figure
+\ref{perf:spmm_comp}). Vertex connections in RMAT graphs are generated randomly.
+As such, these graphs generate more random memory access than real-world graphs
+and thus are more likely to become CPU-bound. The performance gap between
+SEM-SpMM and IM-SpMM gets smaller as the number of columns in the dense matrices
+increases. Eventually, SEM-SpMM becomes CPU-bound and achieves the same
+performance as IM-SpMM. 
 
 \subsubsection{The input dense matrix cannot fit in memory}
 
@@ -254,7 +258,7 @@ has eight columns.
 	\vspace{3pt}
 	\caption{The relative performance of different sparse matrix multiplication
 		implementations on the 48-core machine. All performance is normalized by
-	IM-SpMM.}
+	IM-SpMM for the graphs.}
 	\label{perf:spmm}
 \end{figure}
 
