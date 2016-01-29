@@ -37,8 +37,6 @@ As such, this operation requires fast network to achieve performance.
 A supercomputer or a large cluster with a fast network is inaccessible or
 too expensive for many users.
 
-\dz{can we demonstrate the distributed solution indeed has scalability problems?}
-
 %What is the nature of your solution?
 
 On the other hand, the current trend of hardware design is to scale up
@@ -50,13 +48,13 @@ This conforms to node design for supercomputers.
 
 We explore a solution that scales sparse matrix dense matrix multiplication
 (SpMM) on a multi-core machine with commodity solid-state drives (SSDs) and
-perform this operation in a semi-external memory (SEM) fashion
-\cite{flashgraph, Abello98}. That is, we keep the sparse matrix on SSDs and
-the dense matrix in memory. \dz{How to define SEM more formally?}
-To enable semi-external memory for sparse matrix multiplication, we assume
+perform SpMM in a semi-external memory (SEM) fashion \cite{flashgraph,
+Abello98}. Here we define semi-external memory for SpMM as keeping the sparse
+matrix on SSDs and the dense matrix or some columns of the dense matrix in
+memory. In semi-external memory, we assume
 that the memory of a machine is sufficient to keep at least one column
-of the input dense matrix but is insufficient to hold the sparse matrix
-in memory. Even though SpMM can be implemented with SpMV,
+of the input dense matrix but is insufficient to hold both the sparse matrix
+and the dense matrices in memory. Even though SpMM can be implemented with SpMV,
 we optimize SpMM directly to explore data locality in SpMM and reduce I/O
 in semi-external memory. Given fast SSDs, we demonstrate that the SEM solution
 uses the resource of a multi-core machine well and
