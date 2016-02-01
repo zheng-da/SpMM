@@ -1,4 +1,4 @@
-\section{Sparse matrix multiplication}
+\section{Sparse matrix multiplication} \label{sec:spmm}
 Sparse matrix multiplication on graphs leads to many random memory
 accesses and its performance is usually limited by random memory performance
 of DRAM. We perform sparse matrix multiplication in semi-external memory (SEM)
@@ -251,8 +251,9 @@ a previously allocated memory buffer if it is too small for a new I/O request.
 \label{sec:mem}
 The memory size has significant impact on I/O in semi-external memory.
 The minimum memory requirement for semi-external memory sparse matrix
-multiplication is $n c + \epsilon$, where $n$ is the number of rows
-of the input dense matrix, $c$ is the element size of the dense matrix
+multiplication is $n c + t \epsilon$, where $n$ is the number of rows
+of the input dense matrix, $c$ is the element size of the dense matrix,
+$t$ is the number of threads processing the sparse matrix
 and $\epsilon$ is the buffer size for part of the sparse matrix and the output
 dense matrix. When a machine does not have sufficient memory to keep the entire
 input dense matrix in memory, we need multiple passes on the sparse matrix to
