@@ -49,11 +49,12 @@ and 1.5 billion
 edges. The largest graph is the page graph with 3.4 billion vertices
 and 129 billion edges, which is two orders of magnitude larger than the smallest
 graphs. We generate two synthetic graphs with R-Mat \cite{rmat} to fill
-the size gap between the smallest and largest graph. The synthetic graphs
-have different density to help evaluate our sparse matrix multiplication more
-thoroughly. Some applications in Section \ref{sec:apps} run on directed graphs
-and some runs on undirected graphs. As such, we construct a directed and
-undirected version for each of the synthetic graphs. The page graph is clustered
+the size gap between the smallest and largest graph. We further construct
+a directed version and undirected version for each of the synthetic graphs
+because some applications in Section \ref{sec:apps} run on directed graphs
+and some run on undirected graphs. We always use the undirected version for
+performance evaluation of sparse matrix multiplication and use the directed
+version for evaluation of some applications. The page graph is clustered
 by domain, generating good CPU cache hit rates in sparse matrix multiplication.
 
 \subsection{The performance of sparse matrix multiplication}
@@ -61,8 +62,8 @@ by domain, generating good CPU cache hit rates in sparse matrix multiplication.
 We evaluate the performance of our semi-external memory sparse matrix
 multiplication (SEM-SpMM) and compare its performance with our in-memory sparse
 matrix multiplication (IM-SpMM) as well as other state-of-art in-memory sparse
-matrix multiplication implementations including the MKL and Trilinos
-implementation on the graphs in Table \ref{graphs}. The MKL and Trilinos SpMM
+matrix multiplication implementations including the ones in Intel MKL and Trilinos
+on the graphs in Table \ref{graphs}. The MKL and Trilinos implementations
 cannot run on the page graph.
 
 \subsubsection{SEM-SpMM vs. IM-SpMM}
@@ -108,7 +109,7 @@ In this section, we compare SEM-SpMM with the Intel MKL and Trilinos
 implementations. Intel MKL runs on shared-memory machines. Trilinos can run in
 both shared memory and distributed memory, so we measure its performance in
 our 48-core NUMA machine as well as an EC2 cluster. We run Trilinos in the largest
-EC2 instances r3.8xlarge, which each has 16 physical CPU cores and 244GB of RAM
+EC2 instances r3.8xlarge, where each has 16 physical CPU cores and 244GB of RAM
 and is optimized for memory-intensive applications. The EC2 instances are
 connected with 10Gbps network.
 
@@ -142,11 +143,27 @@ performance of our SEM-SpMM with Intel MKL and Trilinos for both sparse matrix
 vector multiplication (SpMV) and sparse matrix dense matrix multiplication (SpMM).
 The Trilinos implementation is optimized for SpMV. Our SEM-SpMM still
 constantly outperforms Trilinos by a factor of $2-3$ even for SpMV. The MKL
-implementation has better optimizations for SpMM with dense matrices of
-more columns, but our SEM-SpMM can still almost twice as fast as MKL when
-the dense matrix has eight columns.
+implementation has better optimizations for SpMM, but our SEM-SpMM can still
+almost twice as fast as MKL when the dense matrix has eight columns.
 
-\dz{memory consumption}
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{SpMM-mem}
+		\caption{Memory consumption of different SpMM implementations on
+		RMAT-160.}
+		\label{perf:spmm_mem}
+	\end{center}
+\end{figure}
+
+SEM-SpMM only consumes a small fraction of memory compared with other SpMM
+implementations (Figure \ref{perf:spmm_mem}). As explained in Section
+\ref{sec:mem}, the memory requirement of SEM-SpMM is $n c + t \epsilon$.
+When we use 48 threads for SpMM, the memory consumption for keeping some
+local memory buffers in each thread is significant and is fairly constant
+for each graph. As such, we only show the memory consumption on the largest
+graph RMAT-160. We also observe that IM-SpMM consumes much less memory than
+MKL and Trilinos because we use very compact format for a sparse matrix.
 
 \begin{figure}
 	\begin{center}
@@ -161,9 +178,9 @@ the dense matrix has eight columns.
 \end{figure}
 
 Our SEM-SpMM also outperforms Trilinos that runs in the Amazon cloud by a large
-margin for SpMV, especially on real-world graphs, even though Trilinos gets up
-to 2.5 times as many CPU cores as our SEM-SpMM (Figure \ref{perf:ec2}).
-We do not compare SEM-SpMM with Trilinos
+margin for SpMV, especially on real-world graphs (Figure \ref{perf:ec2}).
+When Trilinos runs on 8 EC2 instances, it has 2.5 times as many CPU cores as
+our SEM-SpMM on the NUMA machine. We do not compare SEM-SpMM with Trilinos
 for SpMM because Trilinos is not optimized for SpMM as shown above. Trilinos
 is not able to run SpMV on RMAT-160 on two EC2 nodes.
 One of the main reasons that our SEM-SpMM performs much
@@ -174,29 +191,31 @@ Trilinos.
 \subsubsection{SEM-SpMM with a large input dense matrix}
 
 We further measure the performance of SEM-SpMM with a large input dense matrix
-that cannot fit in memory. In this experiment, we
-measure the performance of multiplying a sparse matrix with a dense matrix
-of 32 columns and the input dense matrix is stored on SSDs initially.
-We need to load the input dense matrix from SSDs and write the output dense
-matrix to SSDs. We perform our SEM-SpMM in this setting with different memory
-sizes. We only show the performance result on the Friendster graph because
-other graphs have very similar results.
+that cannot fit in memory. In this experiment, we measure the performance of
+multiplying a sparse matrix with a dense matrix of 32 columns and the input
+dense matrix is stored on SSDs initially. We study the impact of memory size
+on the performance of SEM-SpMM by artificially varying the number of columns
+that fit in memory. In each run, we need to load the input dense matrix from
+SSDs and stream the output dense matrix to SSDs. We do not show the result on
+the Page graph because the dense matrix with 32 columns for the Page graph
+cannot fit in memory.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{spmm-32cols}
-		\caption{The performance of SEM-SpMM with 32-column matrices on
-			the Friendster graph relative to IM-SpMM. SEM-SpMM is broken into
-			multiple SEM-SpMMs based on the memory size.}
+		\caption{The performance of SEM-SpMM with 32-column matrices
+			relative to IM-SpMM. SEM-SpMM is broken into multiple SEM-SpMMs
+		based on the memory size.}
 		\label{perf:spmm32}
 	\end{center}
 \end{figure}
 
 As more columns in the input dense matrix can fit in memory, the performance
 of SEM-SpMM constantly increases (Figure \ref{perf:spmm32}). When the memory
-can fit over four columns, the SEM implementation gets over 50\% of
-the in-memory performance. Even when only one column of the input dense matrix
+can fit over four columns of the input dense matrix, the SEM implementation
+gets over 50\% of the performance of IM-SpMM. Even when only one column of
+the input dense matrix
 can fit in memory, the SEM implementation can still get 30\% of the in-memory
 performance. When the entire input dense matrix can fit in memory, we get over
 80\% of the in-memory performance.
@@ -213,29 +232,31 @@ performance. When the entire input dense matrix can fit in memory, we get over
 \end{figure}
 
 Two main factors lead to performance loss in SEM-SpMM when the input dense matrix
-cannot fit in memory. We illustrate the overheads in SEM-SpMM on the Friendster
-graph (Figure \ref{perf:spmm32_over}). The main performance loss
-comes from the loss of data locality in SpMM when we have to partition the input
-dense matrix vertically.
+cannot fit in memory. We illustrate the contribution of four potential overheads
+in SEM-SpMM on the Friendster graph (Figure \ref{perf:spmm32_over}). The main
+performance loss comes from the loss of data locality in SpMM when we have to
+partition the input dense matrix vertically.
 Partitioning the dense matrix into one-column matrices contributes 60\%
 of performance loss. The performance loss caused by this factor drops quickly
-when the vertical partition size increases. The performance loss from keeping
-the sparse matrix on SSDs is also significant when the dense matrix is partitioned
+when the vertical partition size increases. Keeping the sparse matrix on SSDs
+also contributes some performance loss when the dense matrix is partitioned
 into small matrices. The overhead almost goes away when more than four columns
 of the dense matrix can fit in memory. The overhead of streaming the output dense
 matrix to SSDs and reading the input dense matrix to memory is less significant.
 
 \subsection{Optimizations on sparse matrix multiplication}
-Accelerating SEM SpMM requires both memory and I/O optimizations. To illustrate
-the effectiveness of each optimization, we apply the memory and I/O optimizations
-incrementally. When only applying memory optimizations to reduce the overhead
-of memory access, SEM SpMM may become I/O bound and it may be difficult to
-demonstrate their effectiveness. Similarly, it may be difficult to demonstrate
-the effectiveness of I/O optimizations when applying them alone. Thus, we first
-deply memory optimizations on in-memory sparse matrix multiplication and then
-deply I/O optimizations on SEM SpMM with all memory optimizations.
+Accelerating SEM-SpMM requires both computation and I/O optimizations because
+SEM-SpMM may be both CPU and I/O bound. To illustrate the effectiveness of
+each optimization, we apply the computation and I/O optimizations
+incrementally. It is difficult to demonstrate the effectiveness of computation
+optimizations when SEM-SpMM is I/O bound. Similarly, it is difficult to demonstrate
+the effectiveness of I/O optimizations when SEM-SpMM is CPU bound. Thus, we first
+deply computation optimizations on in-memory sparse matrix multiplication and then
+deply I/O optimizations on SEM-SpMM with all computation optimizations.
 
-For memory optimizations, we start with an in-memory implementation that
+We deploy many computation optimizations shown in Section \ref{sec:spmm} and
+here we illustrate some major optimizations. We start with an in-memory
+implementation that
 performs sparse matrix multiplication on a sparse matrix in the CSR format
 and apply the optimizations incrementally in the following order:
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
@@ -252,10 +273,12 @@ All of these optimizations have positive effect on sparse matrix
 multiplication and all optimizations together speed up SpMM by $3-5$ times
 (Figure \ref{perf:spmm_opt}). The degree of effectiveness
 varies between different graphs and different numbers of columns in
-the dense matrices. The largest performance boost is from cache blocking.
+the dense matrices. The largest performance boost is from cache blocking,
+especially for SpMV.
 This is expected because the main overhead of SpMM comes from random memory
 access and cache blocking significantly increases CPU cache hits to reduce
-random memory access.
+random memory access. CPU vectorization is only effective on SpMM because
+it optimizes computation on a row in the dense matrix.
 %For example, the NUMA optimization is more effective when
 %the dense matrices have more columns because more columns in the dense
 %matrices require more memory bandwidth. Cache blocking is very effective when
@@ -264,14 +287,15 @@ random memory access.
 %improves and the effectiveness of cache blocking becomes less noticeable.
 %When there are too many columns, the rows from the input and output matrices
 %can no longer be in the CPU cache.
-With all optimizations, we have a fast
-in-memory sparse matrix dense matrix multiplication, denoted by IM-SpMM.
+With all optimizations, we have a fast in-memory implementation for both
+sparse matrix vector multiplication and sparse matrix dense matrix multiplication.
+We denote this implementation with IM-SpMM.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{SpMM_optimize}
-		\caption{The speedup of memory optimizations for SpMM on the Friendster
+		\caption{The speedup of computation optimizations for SpMM on the Friendster
 			graph (F) and the Twitter graph (T) for different numbers of
 			columns in the dense matrices.}
 		\label{perf:spmm_opt}
@@ -280,8 +304,8 @@ in-memory sparse matrix dense matrix multiplication, denoted by IM-SpMM.
 
 We implement the base version of SEM-SpMM based on the IM-SpMM implementation
 above. In this implementation, we write the output dense matrix to SSDs.
-SpMM on a dense matrix with a few columns is usually CPU-bound.
-We apply the I/O optimizations to the base SEM-SpMV in the following order to show
+SpMM on a dense matrix with a few columns is usually CPU-bound. As such,
+we illustrate the I/O optimizations on the base SEM-SpMV in the following order to show
 their effectiveness:
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
 	\item use a compact sparse matrix format to reduce the number of bits read
@@ -305,9 +329,9 @@ their effectiveness:
 
 SEM-SpMV on some of the graphs requires substantial I/O throughput and
 any improvement on I/O leads to overall performance boost (Figure
-\ref{perf:spmm_opt_io}). The Page graph is relatively well clustered, so it is
-less computationally intensive than other graphs
-and SEM-SpMM on this graph requires higher I/O throughput.
+\ref{perf:spmm_opt_io}). The Page graph is relatively well clustered, so
+SEM-SpMV on this graph is less computationally intensive than other graphs
+and requires higher I/O throughput.
 Using a compact sparse matrix format accelerates the information retrieval
 of the sparse matrix and gives us the best performance boost among all
 optimizations. Reducing the overhead of memory allocation with \textit{mmap()}
@@ -319,8 +343,7 @@ switches with polling achieve substantial performance improvement.
 We evaluate the performance of the implementations of the applications in
 Section \ref{sec:apps}. We show the effectiveness of additional memory for
 these applications in our implementation and compare their performance
-with the state-of-art implementations on smaller graphs. For each application,
-we further show their scalability on the page graph.
+with the state-of-art implementations on smaller graphs.
 
 \subsubsection{PageRank}
 We evaluate the performance of our SpMM-based PageRank implementation
@@ -333,16 +356,25 @@ and the one in GraphLab create, the next generation of
 PowerGraph \cite{powergraph}. The PageRank implementation in FlashGraph computes
 approximate PageRank values while SpMM-PageRank and GraphLab Create computes
 exact PageRank values. We run GraphLab Create completely in memory and run
-FlashGraph in semi-external memory.
+FlashGraph in semi-external memory. GraphLab Create is not able to compute
+PageRank on the Page graph.
 
 SpMM-PageRank in memory and in semi-external memory both significantly outperforms
 the implementations in FlashGraph and GraphLab Create (Figure \ref{perf:pagerank})
 even though FlashGraph computes approximate PageRank and GraphLab Create runs
-completely in memory. GraphLab Create is not able to compute PageRank on the Page
-graph.
+completely in memory. The main computation of PageRank is to access PageRank
+values from neighbor vertices, which is essentially the same computation in
+sparse matrix vector multiplication. Our SpMM is highly optimized for both CPU
+and I/O. Even though SpMM-PageRank performs more computation than FlashGraph,
+it performs the computation required by PageRank much more efficiently and
+needs to less data from SSDs than FlashGraph. SpMM-PageRank and the implementation
+in GraphLab create performs the same amount of computation, but SpMM-PageRank
+can performs the computation much more efficiently.
 
-%The experiment results show that although keeping more vectors in memory can
-%improve performance for SpMM-PageRank, the performance improvement is insignificant.
+The experiment results show that although keeping more vectors in memory can
+improve performance for SpMM-PageRank, the performance improvement is not very
+significant. As such, SpMM-PageRank only needs to keep one vector in memory
+and thus has very small memory consumption.
 
 \begin{figure}
 	\begin{center}
@@ -358,22 +390,24 @@ graph.
 
 \subsubsection{Eigensolver}
 
-We evaluate the performance of our SEM eigensolver and compare its performance
+We evaluate the performance of our SEM KrylovSchur eigensolver and compare
+its performance
 with our in-memory eigensolver and the Trilinos KrylovSchur eigensolver.
 Usually, spectral analysis \cite{} only requires a very small number of
 eigenvalues, so we compute eight eigenvalues in this experiment. We perform
 eigendecomposition on the smaller undirected graphs
-in Table \ref{graphs} and compute singular value decomposition (SVD) on
-the Page graph. Only our SEM eigensolver is able to compute eigenvalues
-on the page graph. In all experiments, we use one for the block size and
-have 16 vectors in the subspace.
+in Table \ref{graphs}. To evaluate the scalability of the SEM eigensolver,
+we compute singular value decomposition (SVD) on the Page graph. Among all of
+the eigensolvers, only our SEM eigensolver is able to compute eigenvalues
+on the Page graph. In all experiments, we use one for the block size of
+the KrylovSchur eigensolver and have 16 vectors in the subspace.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{eigen-runtime-8ev}
-		\caption{The preformance of our SEM KrylovSchur and the Trilinos KrylovSchur
-			eigensolvers relative to our IM KrylovSchur when computing eight
+		\caption{The preformance of our SEM KrylovSchur, our in-memory eigensolver
+			and the Trilinos eigensolvers when computing eight
 			eigenvalues. SEM-min keeps the entire vector subspace on SSDs and
 		SEM-max keeps the entire vector subspace in memory.}
 		\label{fig:eigen}
