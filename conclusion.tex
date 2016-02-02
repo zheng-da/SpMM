@@ -4,36 +4,39 @@ We perform sparse matrix multiplication in semi-external memory (SEM), in which
 we keep the sparse matrix on SSDs and the dense matrices in memory. Semi-external
 memory increases scalability in proportion to the ratio of non-zero entries
 to rows or columns in a sparse matrix. It incorporates well with many memory
-optimizations for sparse matrix
-multiplication such as cache blocking and partitioning the dense matrix for
-NUMA machines. We also deploy a set of I/O optimizations for high-speed SSDs
+optimizations for sparse matrix multiplication such as cache blocking and the NUMA
+optimization. We also deploy a set of I/O optimizations for high-speed SSDs
 such as I/O polling and preallocating memory buffers for I/O.
 
-Our SEM sparse matrix multiplication is able to achieve performance
-comparable to its in-memory counterparts while significantly outperforming
-the MKL and Trilinos implementations. Our SEM implementation achieves almost
-100\% performance of the in-memory implementation on some graphs when
-the dense matrices have more than four columns in some graphs and can fit
-in memory. Even when the dense matrix has only one column, it achieves at least
-60\% performance of its in-memory counterpart on different
-graphs.
+Our SEM sparse matrix multiplication is able to achieve performance comparable
+to its in-memory counterparts while significantly outperforming the MKL and
+Trilinos implementations. Our SEM implementation achieves almost 100\% performance
+of the in-memory implementation on some graphs when the dense matrices can fit
+in memory and have more than four columns. Even when the dense matrix has only
+one column, it achieves at least 65\% performance of its in-memory counterpart
+on different graphs. Furthermore, our SEM sparse matrix multiplication also
+scales to very large graphs with billions of vertices and hundreds of billions
+of edges.
 
-For a machine with insufficient memory
-to keep the entire input dense matrix in memory, we partition the dense matrix
-vertically and run semi-external memory sparse matrix multiplication multiple
-times. Given a fast SSD array, the SEM sparse matrix multiplication becomes
-bottlenecked by CPU, even when the number of columns in the dense matrix
-is small. As such, as long as a machine has sufficient memory to contain
-a small number of columns of the input dense matrix, we can achieve performance
-comparable to the in-memory implementation for a dense matrix with an arbitrary
-number of columns.
+For a machine with insufficient memory to keep the entire input dense matrix
+in memory, we partition the dense matrix vertically and run SEM SpMM multiple
+times. In this case, the main overhead of SEM SpMM comes from the loss of
+data locality caused by vertical partitioning on the dense matrix. However,
+given sufficient memory to keep a small number of columns of the input dense
+matrix, we can achieve performance comparable to the in-memory counterpart.
 
 We apply our sparse matrix multiplication to three important applications:
 PageRank, eigendecomposition and non-negative matrix factorization. We demonstrate
 how additional memory should be used in semi-external memory in each application.
-In summary, additional memory should always first be used for the input dense
-matrix, and then the output dense matrix. If there exists additional memory,
-we can further improve performance by caching the sparse matrix.
+We further demonstrate that each of our implementations significantly outperforms
+the state of art and can scale to very large graphs.
 
-SSDs are energy-efficient storage media \cite{}. Thus, our solution introduces
-an energy-efficient architecture for large-scale sparse matrix multiplication.
+Our SSD-based solution can also achieve very high energy efficiency even though
+we have not measured energy consumption explicitly. SSDs are energy-efficient
+storage media \cite{} compared with RAM and hard drives. When processing large
+datasets, our solution only uses
+a single machine and requires a relatively small amount of memory. In contrast,
+a distributed solution requires many more machines and much more aggregate
+memory in order to process datasets of the same size. As such, our solution
+introduces an energy-efficient architecture for many large-scale data analysis
+tasks.
