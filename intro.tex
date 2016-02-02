@@ -5,7 +5,8 @@ For example, matrix factorization algorithms on a sparse matrix such as
 singular value decomposition (SVD) \cite{svd} and non-negative matrix
 factorization (NMF) \cite{nmf} requires sparse matrix multiplication.
 Graph analysis algorithms such as PageRank \cite{pagerank} can be
-formulated as sparse matrix multiplication \cite{Mattson13}. Some of
+formulated as sparse matrix multiplication or generalized sparse matrix
+multiplication \cite{Mattson13}. Some of
 the algorithms, such as PageRank and SVD, require sparse matrix vector
 multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
@@ -40,16 +41,16 @@ too expensive for many users.
 %What is the nature of your solution?
 
 On the other hand, the current trend of hardware design is to scale up
-a machine in high performance computing \cite{Ang14}.
+a machine for high performance computing.
 These machines typically have multiple processors with many CPU cores and
 a large amount of memory. They are also equipped with fast flash
 memory such as solid-state drives (SSDs) to further extend memory capacity.
-This conforms to node design for supercomputers.
+This conforms to the node design for supercomputers \cite{Ang14}.
 
 We explore a solution that scales sparse matrix dense matrix multiplication
 (SpMM) on a multi-core machine with commodity solid-state drives (SSDs) and
 perform SpMM in a semi-external memory (SEM) fashion \cite{flashgraph,
-Abello98}. Here we define semi-external memory for SpMM as keeping the sparse
+Abello98}. Our definition of semi-external memory for SpMM is to keep the sparse
 matrix on SSDs and the dense matrix or some columns of the dense matrix in
 memory. In semi-external memory, we assume
 that the memory of a machine is sufficient to keep at least one column
@@ -64,11 +65,11 @@ to the ratio of non-zero entries to rows or columns in a sparse matrix.
 
 % Why is it new/different/special?
 
-Although SSDs can deliver high IOPS and sequential I/O throughput, we have
+Although SSDs can deliver high IOPS and high sequential I/O throughput, we have
 to overcome many technical challenges to construct a sparse matrix
 multiplication kernal to achieve performance comparable to in-memory
 counterparts. Even though SSDs have high IOPS, their sequential I/O throughput
-is still significantly higher than random I/O and SSDs are an order of
+is still significantly higher than random I/O. SSDs are still an order of
 magnitude slower than DRAM in throughput. Furthermore, random writes are harmful
 to SSDs \cite{sfs}. They increase write amplification, decrease I/O throughput,
 increase latency and shorten the lives of SSDs.
@@ -76,12 +77,12 @@ increase latency and shorten the lives of SSDs.
 Semi-external memory provides a scalable SpMM solution that incorporates well
 with I/O access to SSDs, parallelization and in-memory optimizations.
 It streams the sparse matrix from SSDs for computation, which results in maximal
-I/O throughput from SSDs. It streams the output matrix to SSDs once if
+I/O throughput from SSDs. It streams the output matrix to SSDs only once if
 memory is insufficient to store the output matrix, resulting in
 the minimum amount of data written to SSDs and maximizing I/O throughput.
 We compress the sparse matrix to further accelerate retrieving the sparse
-matrix from SSDs. In the parallel setting, each thread streams its own partitions.
-The computation in each thread is independent.
+matrix from SSDs. In the parallel setting, each thread streams its own partitions
+of the sparse matrix and performs computation independantly.
 We deploy multiple in-memory optimizations specifically designed for power-law
 graphs. For example, we assign partitions of the sparse matrix dynamically to
 threads for load balancing, deploy cache blocking to increase CPU cache hits,
@@ -99,10 +100,10 @@ of columns in a dense matrix increases, SEM SpMM becomes CPU bound, instead of
 I/O bound on fast SSDs.
 
 We develop three important applications in scientific computing and
-data mining with our SEM SpMM: PageRank \cite{pagerank}, eigendecomposition
+data mining with our SEM SpMM: PageRank \cite{pagerank}, eigensolver
 \cite{} and non-negative matrix factorization \cite{nmf}. Each application
-requires SpMM with different numbers of columns in the dense matrix, which
-results in different strategies of placing data in memory.
+requires SpMM with different numbers of columns in the dense matrix,
+resulting in different strategies of placing data in memory.
 With the three applications, we demonstrate optimal data placement for
 different memory capacities.
 
