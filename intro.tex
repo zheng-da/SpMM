@@ -11,9 +11,16 @@ the algorithms, such as PageRank and SVD, require sparse matrix vector
 multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
 
+The largest sparse matrices arise from graph datasets in which one performs
+sparse matrix multiplication for graph analysis, especially for spectral
+analysis. These matrices inherit structure from natural graphs. Specifically,
+these matrices are typically very sparse and have near-random distribution
+for non-zero entries. They also have a power law distribution that governs
+the number of non-zero entries per row and column.
+
 % Why is it hard?
 
-It is challenging to implement an efficient kernel of sparse matrix
+It is challenging to have an efficient implementation of sparse matrix
 multiplication, especially for sparse matrices that encode real-world graphs
 such as social networks
 and Web graphs. Sparse matrix multiplication is notorious for achieving only
@@ -33,15 +40,15 @@ for small matrices and scaling to a large sparse matrix in a large cluster,
 where the aggregate memory is sufficient to store the sparse matrix
 \cite{Williams07, Yoo11, Boman2013}.
 The distributed solution for sparse matrix multiplication leads to significant
-network communication and network is usually the bottleneck.
-As such, this operation requires fast network to achieve performance.
+network communication and network bandwidth is usually the bottleneck.
+As such, this operation requires a fast network to achieve performance.
 A supercomputer or a large cluster with a fast network is inaccessible or
 too expensive for many users.
 
 %What is the nature of your solution?
 
-On the other hand, the current trend of hardware design is to scale up
-a machine for high performance computing.
+On the other hand, a current trend for hardware design is to scale up
+a single machine for high performance computing.
 These machines typically have multiple processors with many CPU cores and
 a large amount of memory. They are also equipped with fast flash
 memory such as solid-state drives (SSDs) to further extend memory capacity.
@@ -57,9 +64,10 @@ columns of a dense matrix are kept in memory and the sparse matrix is access
 from external memory. In semi-external memory, we assume
 that the memory of a machine is sufficient to keep at least one column
 of the input dense matrix but is insufficient to hold both the sparse matrix
-and the dense matrices in memory. Even though SpMM can be implemented with SpMV,
-we optimize SpMM directly to explore data locality in SpMM and reduce I/O
-in semi-external memory. Given fast SSDs, we demonstrate that the SEM solution
+and the dense matrices in memory. Even though SpMM could be implemented with
+SpMV, such an implementation would fail to explore data locality in SpMM and
+increase I/O in semi-external memory. We optimize SpMM directly to overcome
+these two problems. Given fast SSDs, we demonstrate that the SEM solution
 uses the resource of a multi-core machine well and
 can achieve performance comparable to state-of-art in-memory implementations
 for sparse matrix multiplication while increasing the scalability in proportion
@@ -80,11 +88,11 @@ Semi-external memory provides a scalable SpMM solution that incorporates well
 with I/O access to SSDs, parallelization and in-memory optimizations.
 It streams the sparse matrix from SSDs for computation, which results in maximal
 I/O throughput from SSDs. It streams the output matrix to SSDs only once if
-memory is insufficient to store the output matrix, resulting in
+the memory is insufficient to store the output matrix, resulting in
 the minimum amount of data written to SSDs and maximizing I/O throughput.
 We compress the sparse matrix to further accelerate retrieving the sparse
 matrix from SSDs. In the parallel setting, each thread streams its own partitions
-of the sparse matrix and performs computation independantly.
+of the sparse matrix and performs computation.
 We deploy multiple in-memory optimizations specifically designed for power-law
 graphs. For example, we assign partitions of the sparse matrix dynamically to
 threads for load balancing, deploy cache blocking to increase CPU cache hits,
