@@ -56,7 +56,7 @@
 \usepackage{gnuplot-lua-tikz}
 \usepackage{amssymb}
 \usepackage{amsmath}
-%\usepackage{minted}
+\usepackage{minted}
 %\usepackage{bm}
 \usepackage{paralist}
 %\usepackage{ulem}
@@ -162,21 +162,21 @@
 %
 
 %for single author (just remove % characters)
-%\author{
-%{\rm Da Zheng, Randal Burns}\\
-%Department of Computer Science \\
-%Johns Hopkins University
-%\and
-%{\rm Joshua Vogelstein}\\
-%Institute for Computational Medicine \\
-%Department of Biomedical Engineering \\
-%Johns Hopkins University
+\author{
+{\rm Da Zheng, Randal Burns}\\
+\footnotesize Department of Computer Science \\
+\footnotesize Johns Hopkins University
+\and
+{\rm Joshua Vogelstein}\\
+\footnotesize Institute for Computational Medicine \\
+\footnotesize Department of Biomedical Engineering \\
+\footnotesize Johns Hopkins University
 % copy the following lines to add more authors
-%\and
-%{\rm Alexander S. Szalay}\\
-%Department of Physics and Astronomy \\
-%Johns Hopkins University
-%} % end author
+\and
+{\rm Alexander S. Szalay}\\
+\footnotesize Department of Physics and Astronomy \\
+\footnotesize Johns Hopkins University
+} % end author
 
 \date{30 November 2015}
 % Just remember to make sure that the TOTAL number of authors
@@ -191,10 +191,9 @@ of multiple nodes.
 In contrast, we scale sparse matrix multiplication by utilizing commodity
 SSDs. We implement sparse matrix dense matrix multiplication (SpMM) in
 a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
-and dense matrices in memory. As such, our SEM SpMM can incorporate
-with many in-memory optimizations for large sparse graphs with power-law
-distribution in vertex degree and near-random vertex connection. Coupled with
-many I/O optimizations, our SEM SpMM achieves performance
+and dense matrices in memory. As such, our SEM SpMM can incorporate with many
+in-memory optimizations for large power-law graphs with near-random vertex
+connection. Coupled with many I/O optimizations, our SEM SpMM achieves performance
 comparable to our in-memory implementation on a large parallel machine and
 outperforms the implementations in Trilinos and Intel MKL.
 Our experiments show that the SEM SpMM achieves almost 100\% performance
@@ -271,7 +270,7 @@ of these applications.
 \input{conclusion}
 
 %ACKNOWLEDGMENTS are optional
-\section{Acknowledgments}
+%\section{Acknowledgments}
 
 %
 % The following two commands are all you need in the
