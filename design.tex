@@ -1,8 +1,8 @@
 \section{Sparse matrix multiplication} \label{sec:spmm}
-Sparse matrix multiplication on graphs leads to many random memory
+Sparse matrix multiplication leads to many random memory
 accesses and its performance is usually limited by random memory performance
 of DRAM. We perform sparse matrix multiplication in semi-external memory (SEM)
-to scale to a sparse graph with billions of vertices. This strategy enables
+to scale to a sparse matrix with billions of rows and columns. This strategy enables
 nearly in-memory performance while achieving the scalability in proportion
 to the ratio of non-zero entries to rows or columns in the sparse matrix.
 
@@ -27,9 +27,9 @@ complete columns of the original input dense matrix and can fit in memory.
 Each vertical partition stores elements in the row-major order to increase
 data locality. For each partition, we perform sparse matrix multiplication
 in semi-external memory as before and stream the output matrix to SSDs.
-This approach requires $\lceil \frac{D}{M} \rceil$ passes over the sparse matrix,
-where $D$ is the storage size of the input dense matrix and $M$ is the memory
-size.
+%This approach requires $\lceil \frac{D}{M} \rceil$ passes over the sparse matrix,
+%where $D$ is the storage size of the input dense matrix and $M$ is the memory
+%size.
 
 \subsection{Sparse matrix format}
 To support efficient sparse matrix multiplication in semi-external memory,
@@ -38,9 +38,9 @@ hits and reduce the amount of data read from SSDs.
 The state-of-art numeric libraries store a sparse matrix in compressed row storage
 (CSR) or compressed column storage (CSC) format. However, these formats incur
 many CPU cache misses in sparse matrix multiplication on real-world graphs
-due to nearly random vertex connection. They also require a relatively
-large storage size. For a graph with billions of edges, we have to use eight
-bytes to store the row and column indices. For SEM sparse
+due to nearly random vertex connection. They also require a relatively large
+storage size. For a sparse matrix with billions of non-zero entries, we have
+to use eight bytes to store the row and column indices. For SEM sparse
 matrix multiplication, SSDs may become the bottleneck if a sparse matrix has
 a large storage size.
 
@@ -76,8 +76,8 @@ size and the adaptibility to different numbers of columns.
 \end{figure}
 
 To reduce the overall storage size of a sparse matrix, we use a compact format
-to store non-zero entries in a tile. In very sparse matrices such as
-many real-world graphs, many rows in a tile do not have any non-zero entries.
+to store non-zero entries in a tile. In very sparse matrices
+many rows in a tile do not have any non-zero entries.
 The CSR (CSC) format requires an entry for each row (column) in the row
 (column) index. Therefore, the CSR or CSC format wastes space when storing elements
 in a tile. Instead, we only keep data for rows with non-zero entries in a tile
@@ -93,14 +93,13 @@ number and a column index entry to reduce the storage size. Since the most
 significant bit is used to indicate the beginning of a row, this format allows
 a maximum tile size of $32K \times 32K$.
 
-The SCSR format potentially results in many conditional jump CPU instructions
-for sparse matrices with small cache blocking. As such, we hybrid SCSR and
-the coordinate format (COO) to store non-zero entries in a tile to reduce
-conditional jumps.
-For real-world graphs, many rows in a cache tile have only one non-zero entry,
-owing to the sparsity of the graphs and nearly random vertex connection.
-Iterating over single-entry rows requires to test the end of a row for every
-non-zero entry, which leads to many conditional jumps.
+Inside each cache tile of the SCSR, we use the coordinate format (COO) for
+the rows that have only a single non-zero entry. For the adjacency matrices of
+real-world graphs, many rows
+in a cache tile have only one non-zero entry, owing to the sparsity of the graphs
+and nearly random vertex connection. This design avoids many conditional jumps
+because iterating over single-entry rows in the SCSR format requires to test
+the end of a row for every non-zero entry, which leads to many conditional jumps.
 In contrast, COO is more suitable for storing these
 single-entry rows. It does not increase the storage size but significantly
 reduces the number of conditional jump instructions. As a result, we hybrid
@@ -178,9 +177,10 @@ to translate the C code to the vector CPU instructions by predefining the matrix
 width in the code.
 
 \subsection{I/O optimizations}
-Semi-external memory sparse matrix multiplication results in sequential I/O
-by streaming the sparse matrix from SSDs and potentially streaming the output
-dense matrix to SSDs. For accessing fast SSDs, the overhead of operating systems
+Semi-external memory sparse matrix multiplication results in sequential I/O.
+%by streaming the sparse matrix from SSDs and potentially streaming the output
+%dense matrix to SSDs.
+For accessing data in fast SSDs sequentially, the overhead of operating systems
 such as thread context switch and memory allocation becomes noticeable.
 We need to tackle these obstacles in order to achieve the maximal I/O
 throughput of fast SSDs.
@@ -208,7 +208,7 @@ a previously allocated memory buffer if it is too small for a new I/O request.
 
 \subsection{Parallelization}
 When parallelizing sparse matrix multiplication, we take into account
-semi-external memory as well as the power-law distribution of non-zero entries
+semi-external memory and the power-law distribution of non-zero entries
 in each row of the sparse matrix.
 
 We partition a sparse matrix horizontally for parallelization (Figure
@@ -230,12 +230,12 @@ locate tile rows. As such,
 the matrix index is tiny even for a sparse matrix with billions of rows
 and we can keep the entire matrix index in memory.
 
-We maintain a global task queue for sparse matrix multiplication and a
-thread gets one task at a time from the queue. A task may
-indicates the computation on a \textit{super tile} row or a single tile row.
-At the beginning of the computation, threads get larger tasks; when
-the computation gets close to the end, threads get smaller tasks. This strategy
-achieves good load balancing. The other benefit of maintaining a global
+We maintain a global task queue for sparse matrix multiplication to achieve
+better load blancing and large I/O writes to SSDs. A task may indicate
+the computation on a \textit{super tile} row or a single tile row.
+A thread gets one task at a time from the queue. To achieve good load balancing,
+threads get larger tasks at the beginning and smaller tasks when the computation
+gets close to the end. The other benefit of maintaining a global
 task queue is to maintain the global execution order, which becomes essential
 when the output dense matrix needs to be written to SSDs. When a thread gets
 a task, the final computation result from the task may be small. Instead of
@@ -317,7 +317,7 @@ read_{SEM} = \frac{n c k}{M} E + n c k
 \end{equation*}
 To minimize writes, the EM solution
 scans the sparse matrix once but reads the input dense matrix multiple times.
-Due to near vertex connection in real-world graphs, the EM solution needs to
+Due to near random vertex connection in real-world graphs, the EM solution needs to
 read the entire input dense matrices each time. In the parallel setting,
 the EM solution requires each thread to keep local memory buffers for portions
 of the input and output dense matrices. Assume the EM solution keeps $j$ rows
@@ -369,16 +369,16 @@ matrix multiplication (Figure \ref{code:pagerank}).
 
 \begin{figure}
 \centering
-%\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
-\begin{lstlisting}
+%\begin{lstlisting}
+\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
 while (L1 >= epsilon && niters < max.niters) {
 	pr2 <- d/N+(1-d)*(A %*% (pr1/out.deg))
 	L1 <- sum(abs(pr1-pr2))
 	pr1 <- pr2
 	niters <- niters + 1
 }
-\end{lstlisting}
-%\end{minted}
+\end{minted}
+%\end{lstlisting}
 \caption{The implementation of PageRank with SpMM.}
 \label{code:pagerank}
 \end{figure}
@@ -404,7 +404,7 @@ matrix multiplication and external-memory dense matrix operations. To compute
 eigenvalues of a $n \times n$ matrix, many eigenvalue algorithms for a large
 sparse matrix require to construct a vector subspace with a sequence of
 sparse matrix multiplication and each vector in the subspace has the length of $n$.
-Due to the sparsity of many real-world graphs such as social networks,
+Due to the sparsity of real-world graphs,
 the vector subspace requires substantial storage size and we keep
 some of the vectors in the subspace on SSDs. In addition to sparse matrix
 multiplication, eigensolvers perform some dense matrix operations on the subspace.
@@ -433,7 +433,7 @@ low-rank matrices $W$ and $H$ to approximate a matrix $A \approx WH$. NMF is
 typically used to find factorization on sparse matrices. NMF has many applications
 in machine learning
 and data mining. A well-known example is collaborative filtering \cite{cf} in
-recommender systems. NMF is also applied to graphs, for example, to find communities
+recommender systems. NMF can also be applied to graphs, for example, to find communities
 \cite{yang13, wang11}.
 
 Many algorithms are designed to solve NMF and here we describe an algorithm
