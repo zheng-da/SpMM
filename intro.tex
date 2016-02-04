@@ -49,10 +49,12 @@ This conforms to the node design for supercomputers \cite{Ang14}.
 
 We explore a solution that scales sparse matrix dense matrix multiplication
 (SpMM) on a multi-core machine with commodity solid-state drives (SSDs) and
-perform SpMM in a semi-external memory (SEM) fashion \cite{flashgraph,
-Abello98}. Our definition of semi-external memory for SpMM is to keep the sparse
-matrix on SSDs and the dense matrix or some columns of the dense matrix in
-memory. In semi-external memory, we assume
+perform SpMM in semi-external memory (SEM). The concept of semi-external memory
+was arose as a functional computing approach for graphs \cite{Abello98} in which
+the vertex state of a graph is stored in memory and the edges accessed from
+external memory. We introduce a similar construct for SpMM in which one or more
+columns of a dense matrix are kept in memory and the sparse matrix is access
+from external memory. In semi-external memory, we assume
 that the memory of a machine is sufficient to keep at least one column
 of the input dense matrix but is insufficient to hold both the sparse matrix
 and the dense matrices in memory. Even though SpMM can be implemented with SpMV,
@@ -68,8 +70,8 @@ to the ratio of non-zero entries to rows or columns in a sparse matrix.
 Although SSDs can deliver high IOPS and high sequential I/O throughput, we have
 to overcome many technical challenges to construct a sparse matrix
 multiplication kernal to achieve performance comparable to in-memory
-counterparts. Even though SSDs have high IOPS, their sequential I/O throughput
-is still significantly higher than random I/O. SSDs are still an order of
+counterparts. Even though SSDs have high IOPS, their sequential I/O throughput is
+still significantly higher than random I/O \cite{safs}. SSDs are still an order of
 magnitude slower than DRAM in throughput. Furthermore, random writes are harmful
 to SSDs \cite{sfs}. They increase write amplification, decrease I/O throughput,
 increase latency and shorten the lives of SSDs.
@@ -99,17 +101,17 @@ in the dense matrix in memory, we reduce I/O from SSDs in SpMM. When the number
 of columns in a dense matrix increases, SEM SpMM becomes CPU bound, instead of
 I/O bound on fast SSDs.
 
-We develop three important applications in scientific computing and
-data mining with our SEM SpMM: PageRank \cite{pagerank}, eigensolver
-\cite{} and non-negative matrix factorization \cite{nmf}. Each application
-requires SpMM with different numbers of columns in the dense matrix,
-resulting in different strategies of placing data in memory.
+We develop three important applications in scientific computing and data mining
+with our SEM SpMM: PageRank \cite{pagerank}, eigensolver \cite{anasazi} and
+non-negative matrix factorization \cite{nmf}. Each of them requires SpMM with
+different numbers of columns in dense matrices, resulting in different
+strategies of placing data in memory.
 With the three applications, we demonstrate optimal data placement for
-different memory capacities.
+different memory capacities in a machine.
 
 % What are it's key features?
 
-Our result shows that for many real-world sparse graphs, our SEM sparse matrix
+Our result shows that for real-world sparse graphs, our SEM sparse matrix
 multiplication can achieve almost 100\% performance of our in-memory implementation
 on a large parallel machine with 48 CPU cores
 when the dense matrix has more than four columns. Even for sparse matrix vector
