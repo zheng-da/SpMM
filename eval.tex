@@ -43,16 +43,16 @@ RMAT-160 \cite{rmat} & 100M & 14B & Yes \& No \\
 \label{graphs}
 \end{table}
 
-We use some synthetic graphs and real-world graphs in Table \ref{graphs} for
+We use the adjacency matrices of the graphs in Table \ref{graphs} for performance
 evaluation. The smallest graph we use has 42 million vertices and 1.5 billion
-edges. The largest graph is the page graph with 3.4 billion vertices
+edges. The largest graph is the Page graph with 3.4 billion vertices
 and 129 billion edges, which is two orders of magnitude larger than the smallest
 graphs. We generate two synthetic graphs with R-Mat \cite{rmat} to fill the size
 gap between the smallest and largest graph. We construct a directed and
 undirected version for each of the synthetic graphs
 because some applications in Section \ref{sec:apps} run on directed graphs
 and some run on undirected graphs. We always use the undirected version for
-performance evaluation of sparse matrix multiplication. The page graph is clustered
+performance evaluation of sparse matrix multiplication. The Page graph is clustered
 by domain, generating good CPU cache hit rates in sparse matrix multiplication.
 
 \subsection{The performance of sparse matrix multiplication}
@@ -62,7 +62,7 @@ multiplication (SEM-SpMM) and compare its performance with our in-memory sparse
 matrix multiplication (IM-SpMM) as well as other state-of-art in-memory sparse
 matrix multiplication implementations including the ones in Intel MKL and Trilinos
 on the graphs in Table \ref{graphs}. The MKL and Trilinos implementations
-cannot run on the page graph.
+cannot run on the Page graph.
 
 \subsubsection{SEM-SpMM vs. IM-SpMM}
 
@@ -119,9 +119,9 @@ connected with 10Gbps network.
 		\label{perf:spmm8}
 	\end{subfigure}
 	\vspace{3pt}
-	\caption{The relative performance of different sparse matrix multiplication
-		implementations on the 48-core machine. All performance is normalized by
-	IM-SpMM for the same graphs.}
+	\caption{The performance of different sparse matrix multiplication
+		implementations on the 48-core machine relative to IM-SpMM for
+	the same graphs.}
 	\label{perf:spmm}
 \end{figure}
 
@@ -139,9 +139,9 @@ other SpMM implementations (Figure \ref{perf:spmm_mem}). SEM-SpMM consumes
 memory for the input dense matrix as well as per-thread local memory buffers
 for the sparse matrix and the output dense matrix. When we use 48 threads for
 SpMM, the memory used by local memory buffers in each thread is significant
-but is relatively constant for different graph sizes.
-As such, we only show the memory consumption on the largest
-graph RMAT-160 in Figure \ref{perf:spmm}. Despite significant memory consumed by
+but is relatively constant for different graph sizes. As such, we only show
+the memory consumption on the largest graph RMAT-160 in Figure \ref{perf:spmm}.
+Despite considerable memory consumed by
 local memory buffers for SEM-SpMM, SEM-SpMM uses about one tenth of the memory
 used by IM-SpMM. We also observe that IM-SpMM consumes much less memory than
 MKL and Trilinos thanks to the very compact format for a sparse matrix.
@@ -160,10 +160,8 @@ MKL and Trilinos thanks to the very compact format for a sparse matrix.
 	\begin{center}
 		\footnotesize
 		\include{SpMV-EC2}
-		\caption{The relative performance of our SEM-SpMV in our 48-core
-			machine compared with Trilinos in EC2 clusters. All performance
-			is normalized by the performance of our IM-SpMV for the same
-			graph.}
+		\caption{The performance of our SEM-SpMV in our 48-core machine
+		and Trilinos in EC2 clusters relative to IM-SpMV for the same graph.}
 		\label{perf:ec2}
 	\end{center}
 \end{figure}
@@ -235,14 +233,12 @@ of the dense matrix can fit in memory. The overhead of streaming the output dens
 matrix to SSDs and reading the input dense matrix to memory is less significant.
 
 \subsection{Optimizations on sparse matrix multiplication}
-Accelerating SEM-SpMM requires both computation and I/O optimizations because
-SEM-SpMM may be both CPU and I/O bound. To illustrate the effectiveness of
-each optimization, we apply the computation and I/O optimizations
-incrementally. It is difficult to demonstrate the effectiveness of computation
-optimizations when SEM-SpMM is I/O bound. Similarly, it is difficult to demonstrate
-the effectiveness of I/O optimizations when SEM-SpMM is CPU bound. Thus, we first
-deply computation optimizations on in-memory sparse matrix multiplication and then
-deply I/O optimizations on SEM-SpMM with all computation optimizations.
+Accelerating SEM-SpMM requires both computation and I/O optimizations. Due to
+the limit of space, we only illustrate the effectiveness of computation
+optimizations.
+%Thus, we first deply computation optimizations
+%on in-memory sparse matrix multiplication and then
+%deply I/O optimizations on SEM-SpMM with all computation optimizations.
 
 We deploy many computation optimizations shown in Section \ref{sec:spmm} and
 here we illustrate some major optimizations. We start with an in-memory
@@ -250,8 +246,8 @@ implementation that
 performs sparse matrix multiplication on a sparse matrix in the CSR format
 and apply the optimizations incrementally in the following order:
 \begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
-	\item dispatch partitions of a sparse matrix to threads dynamically for
-		computation to balance load (\textit{Load balance}),
+	\item dispatch partitions of a sparse matrix to threads dynamically
+		to balance load (\textit{Load balance}),
 	\item partition dense matrices for NUMA (\textit{NUMA}),
 	\item organize the non-zero entries in a sparse matrix into tiles to
 		increase CPU cache hits (\textit{Cache blocking}),
@@ -292,41 +288,41 @@ We denote this implementation with IM-SpMM.
 	\end{center}
 \end{figure}
 
-We implement the base version of SEM-SpMM based on the IM-SpMM implementation
-above. In this implementation, we write the output dense matrix to SSDs.
-SpMM on a dense matrix with a few columns is usually CPU-bound. As such,
-we illustrate the I/O optimizations on the base SEM-SpMV in the following order to show
-their effectiveness:
-\begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
-	\item use a compact sparse matrix format to reduce the number of bits read
-		from SSDs,
-	\item reduce memory allocation overhead with \textit{mmap()} by maintaining
-		a per-thread buffer pool to allocate memory for I/O (\textit{buf pool}),
-	\item reduce the number of thread context switch for I/O access with I/O
-		polling (\textit{polling}),
-	\item order the portions of the output dense matrix globally and stream them
-		to SSDs with large I/O (\textit{global output}).
-\end{itemize}
+%We implement the base version of SEM-SpMM based on the IM-SpMM implementation
+%above. In this implementation, we write the output dense matrix to SSDs.
+%SpMM on a dense matrix with a few columns is usually CPU-bound. As such,
+%we illustrate the I/O optimizations on the base SEM-SpMV in the following order to show
+%their effectiveness:
+%\begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
+%	\item use a compact sparse matrix format to reduce the number of bits read
+%		from SSDs,
+%	\item reduce memory allocation overhead with \textit{mmap()} by maintaining
+%		a per-thread buffer pool to allocate memory for I/O (\textit{buf pool}),
+%	\item reduce the number of thread context switch for I/O access with I/O
+%		polling (\textit{polling}),
+%	\item order the portions of the output dense matrix globally and stream them
+%		to SSDs with large I/O (\textit{global output}).
+%\end{itemize}
 
-\begin{figure}
-	\begin{center}
-		\footnotesize
-		\include{SpMM_opts_io}
-		\caption{The speedup of I/O optimizations for SpMV on real-world graphs.}
-		\label{perf:spmm_opt_io}
-	\end{center}
-\end{figure}
+%\begin{figure}
+%	\begin{center}
+%		\footnotesize
+%		\include{SpMM_opts_io}
+%		\caption{The speedup of I/O optimizations for SpMV on real-world graphs.}
+%		\label{perf:spmm_opt_io}
+%	\end{center}
+%\end{figure}
 
-SEM-SpMV on some of the graphs requires substantial I/O throughput and
-any improvement on I/O leads to overall performance boost (Figure
-\ref{perf:spmm_opt_io}). The Page graph is relatively well clustered, so
-SEM-SpMV on this graph is less computationally intensive than other graphs
-and requires higher I/O throughput.
-Using a compact sparse matrix format accelerates the information retrieval
-of the sparse matrix and gives us the best performance boost among all
-optimizations. Reducing the overhead of memory allocation with \textit{mmap()}
-gives significant performance boost. Reducing the number of thread context
-switches with polling achieve substantial performance improvement. 
+%SEM-SpMV on some of the graphs requires substantial I/O throughput and
+%any improvement on I/O leads to overall performance boost (Figure
+%\ref{perf:spmm_opt_io}). The Page graph is relatively well clustered, so
+%SEM-SpMV on this graph is less computationally intensive than other graphs
+%and requires higher I/O throughput.
+%Using a compact sparse matrix format accelerates the information retrieval
+%of the sparse matrix and gives us the best performance boost among all
+%optimizations. Reducing the overhead of memory allocation with \textit{mmap()}
+%gives significant performance boost. Reducing the number of thread context
+%switches with polling achieve substantial performance improvement. 
 
 \subsection{Performance of the applications}
 
@@ -363,7 +359,7 @@ performs the computation much more efficiently.
 
 The experiment results also show that keeping more vectors in memory has modest
 performance improvement for SpMM-PageRank. As such, SpMM-PageRank only needs
-to keep one vector in memory and thus has very small memory consumption.
+to keep one vector in memory, which results in very small memory consumption.
 
 \begin{figure}
 	\begin{center}
@@ -413,36 +409,38 @@ in memory, it has almost the same performance as our in-memory eigensolver.
 
 \subsubsection{NMF}
 We evaluate the performance of our NMF implementation (SEM-NMF) on the directed
-graphs in Table \ref{graphs}. We factorize each of the graphs into two dense
-matrices with the rank of 32. The dense matrices for NMF can be as large as
+graphs in Table \ref{graphs}. The dense matrices for NMF can be as large as
 the sparse matrix. As such, we experiment the effect of the memory size on
-the performance of SEM-NMF by varying the number of columns
-in the input dense matrix that can fit in memory.
+the performance of SEM-NMF by varying the number of columns in the dense matrix
+that can fit in memory. We also compare the performance of SEM-NMF with
+a high-performance NMF implementation SmallK \cite{SmallK}, built on top of
+the numeric library Elemental \cite{elemental}. We factorize
+each of the graphs into two $n \times k$ non-negative dense matrices and
+we use $k=16$ because $16$ is the largest $k$ that SmallK supports for
+the graphs in Table \ref{graphs}.
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{NMF}
 		\caption{The runtime per iteration of SEM-NMF on directed graphs.
-			We vary the number of columns in the dense matrices that can fit
-		in memory.}
+			We vary the number of columns in the dense matrices that are kept
+		in memory to evaluate the memory size on the performance of SEM-NMF.}
 		\label{perf:NMF}
 	\end{center}
 \end{figure}
 
 We can significantly improve the performance of SEM-NMF by keeping more columns
-of the input dense matrix in memory. The trend is more noticeable when the number of
-columns that fit in memory is small. When we can keep eight columns of the input
-dense matrix in memory, SEM-NMF achieves around 50\% of the performance of keeping
-both input and output dense matrices in memory.
+of the input dense matrix in memory (Figure \ref{perf:NMF}). The performance
+improvement is more significant when the number of columns that fit in memory
+is small. When we can keep eight columns of the input dense matrix in memory,
+SEM-NMF achieves over 60\% of the performance of the in-memory implementation.
 
-It is difficult to find a parallel NMF implementation in the literature that
-achieves efficiency and scalability close to our implementation. The MapReduce
-implementations in the literature \cite{Liao14, Yin14, Liu10} run on sparse
+SEM-NMF significantly outperforms other NMF implementations in the literature.
+SmallK is the closest competitor in the literature. We run the same NMF algorithm
+in SmallK. As shown in Figure \ref{perf:NMF}, SEM-NMF outperforms SmallK by
+a large factor on all graphs. There are many MapReduce implementations in
+the literature \cite{Liao14, Yin14, Liu10}. They run on sparse
 matrices with tens of millions of non-zero entries but generally take
 one or two orders of magnitude more time than our SEM-NMF on the sparse matrices
-with billions or even tens of billions of non-zero entries. The closest competitor
-is SmallK \cite{SmallK} built on top of a high-performance numeric library
-Elemental \cite{elemental}. We run the same NMF algorithm in SmallK. As shown
-in Figure \ref{perf:NMF}, SEM-NMF outperforms SmallK by a factor of ten on
-all of the natural graphs.
+with billions or even tens of billions of non-zero entries.
