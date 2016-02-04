@@ -7,7 +7,7 @@ machines. In contrast, Sparse matrix dense matrix multiplication (SpMM) receives
 less attention from the high-performance computing community. Even though
 SpMM can be implemented with SpMV, SpMV fails to explore data locality in SpMM.
 Aktulga et al.~\cite{Aktulga14} optimize SpMM with cache blocking. We focus on
-advancing SpMM with a focus on optimizations for external memory.
+advancing SpMM with a focus on optimizations for semi-external memory.
 
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
 framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
@@ -40,5 +40,4 @@ Intel Math Kernel Library \cite{mkl} is an efficient and parallel linear
 algebra library with matrix operations specifically optimized for Intel
 platforms. It provides an efficient sparse matrix multiplication optimized
 for regular sparse matrices. In contrast, our sparse matrix multiplication
-kernal is specifically optimized for power-law graphs with near-random vertex
-connection.
+optimizes for power-law graphs with near-random vertex connection.
