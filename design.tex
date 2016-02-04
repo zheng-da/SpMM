@@ -3,16 +3,16 @@ Sparse matrix multiplication leads to many random memory
 accesses and its performance is usually limited by random memory performance
 of DRAM. We perform sparse matrix multiplication in semi-external memory (SEM)
 to scale to a sparse matrix with billions of rows and columns. This strategy enables
-nearly in-memory performance while achieving the scalability in proportion
+nearly in-memory performance while achieving scalability in proportion
 to the ratio of non-zero entries to rows or columns in the sparse matrix.
 
 \subsection{Semi-external memory}
-Our definition of semi-external memory for sparse matrix multiplication is
-to keep the sparse matrix on SSDs and the input dense matrix or some columns
+Our definition of semi-external memory for sparse matrix multiplication
+keeps the sparse matrix on SSDs and the input dense matrix or some columns
 of the input dense matrix in memory. During the computation, we stream
-data in the sparse matrix from SSDs to maximize I/O throughput of the SSDs.
+data in the sparse matrix from SSDs to maximize I/O throughput.
 
-There are two options of keeping the output dense matrix. In applications
+There are two options for keeping the output dense matrix. In applications
 such as PageRank and many other graph
 algorithms, dense matrices have only a few columns, so we can keep the output
 dense matrix in memory for many machines. If a machine has insufficient
@@ -27,9 +27,9 @@ complete columns of the original input dense matrix and can fit in memory.
 Each vertical partition stores elements in the row-major order to increase
 data locality. For each partition, we perform sparse matrix multiplication
 in semi-external memory as before and stream the output matrix to SSDs.
-%This approach requires $\lceil \frac{D}{M} \rceil$ passes over the sparse matrix,
-%where $D$ is the storage size of the input dense matrix and $M$ is the memory
-%size.
+%This approach requires $\lceil \frac{D}{M} \rceil$ passes over the sparse
+%matrix, where $D$ is the storage size of the input dense matrix and $M$ is
+%the memory size.
 
 \subsection{Sparse matrix format}
 To support efficient sparse matrix multiplication in semi-external memory,
@@ -61,9 +61,9 @@ the tile and is affected by the number of columns of the dense matrices,
 specified by applications. Instead of generating a sparse matrix with
 different tile sizes optimized for different numbers of columns in the dense
 matrices, we use a relatively small tile size and rely on the runtime system
-to optimize for different numbers of columns (in section \ref{sec:cpu}).
+to optimize for different numbers of columns (Section \ref{sec:cpu}).
 However, a small tile size potentially increases the storage size of the sparse
-matrix. In semi-external memory, we expect that the dense matrices have
+matrix. In semi-external memory, the dense matrices usually have
 a very small number of columns in sparse matrix multiplication. Therefore, we
 use the tile size of $16K \times 16K$ by default to balance the matrix storage
 size and the adaptibility to different numbers of columns.
@@ -102,8 +102,8 @@ because iterating over single-entry rows in the SCSR format requires to test
 the end of a row for every non-zero entry, which leads to many conditional jumps.
 In contrast, COO is more suitable for storing these
 single-entry rows. It does not increase the storage size but significantly
-reduces the number of conditional jump instructions. As a result, we hybrid
-SCSR and COO and store non-zero entries in the COO format behind the row headers
+reduces the number of conditional jump instructions. As a result, we combine
+SCSR with COO and store non-zero entries in the COO format behind the row headers
 of SCSR (Figure \ref{tile_format}). All non-zero entries are
 stored together at the end of a tile.
 
@@ -116,7 +116,7 @@ stored together at the end of a tile.
 %in memory during sparse matrix multiplication.
 
 \subsection{Dense matrices}
-In many applications, dense matrices in sparse matrix multiplication are usually
+In many applications, the dense matrices in SpMM are
 tall-and-skinny matrices with millions or even billions of rows but only a small
 number of columns. The number of columns is determined by applications.
 In semi-external memory,
@@ -150,8 +150,8 @@ from a single row interval.
 %\end{figure}
 
 \subsection{Runtime CPU optimizations} \label{sec:cpu}
-We can perform some runtime optimizations to speed up sparse matrix
-dense matrix multiplication. These runtime optimizations further reduce
+We perform runtime optimizations to speed up sparse matrix
+dense matrix multiplication. Runtime optimizations further increases
 CPU cache hits and allows more efficient computation and memory access.
 
 To better utilize CPU cache, we process tiles of a partition in
@@ -165,11 +165,11 @@ share the CPU cache. An optimal size for a \textit{super tile} fills
 the CPU cache with the rows from the dense matrices involved in
 the computation with the \textit{super tile}.
 
-In spite of nearly random edge connection in a real-world graph,
-there exists regularity \dz{explain more?} that allows vectorization to improve performance
-in sparse matrix dense matrix multiplication. We multiply each non-zero entry
-with the corresponding row from the input dense matrix
-and add the result to the corresponding row in the output dense matrix.
+In spite of nearly random edge connection in a real-world graph, we can explore
+regularity in SpMM with row-major dense matrices to improve performance because
+in this case we multiply a non-zero entry with all elements in a row of
+the input dense matrix
+and add the results to the corresponding row of the output dense matrix.
 These operations can be accomplished by the vector CPU instructions, such as
 AVX \cite{avx} to enable more efficient memory access and computation.
 The current implementation relies on GCC's auto-vectorization
@@ -185,25 +185,26 @@ such as thread context switch and memory allocation becomes noticeable.
 We need to tackle these obstacles in order to achieve the maximal I/O
 throughput of fast SSDs.
 
-The latency of a thread context switch undermines the sequential I/O throughput
-of a high-speed SSD array.
-%and it becomes critical to avoid thread context switch to gain I/O performance.
-When a thread issues I/O and waits for I/O completion, the thread is switched
-out. Once I/O is complete, the thread is rescheduled for execution but there is
-latency for rescheduling. To reduce the effect of thread context switch,
-an application thread issues asynchronous I/O and polls for I/O to avoid thread
-context switches after completing all computation available to it.
+An application thread issues asynchronous I/O and polls for I/O to avoid thread
+context switches because the latency of context switch can undermine
+the sequential I/O throughput of a high-speed SSD array. When a thread issues
+I/O and waits for I/O completion, the operating system switches the thread
+out; the operating system reschedules the thread for execution once I/O is
+complete. However, there is latency for thread rescheduling and the latency
+from frequent rescheduling can cause noticeable performance degradation
+on a high-speed SSD array. As such, we use I/O polling to avoid a thread from
+being switched out after the thread completes all computation available to it.
 
 When accessing a sparse matrix or a dense matrix from SSDs, we maintain a set of
 memory buffers for I/O access to reduce the overhead of memory allocation.
 We use large I/O to access matrices on SSDs to increase I/O throughput.
-The operating system usually allocate a large memory buffer with \textit{mmap()}
+The operating system usually allocates a large memory buffer with \textit{mmap()}
 and populates the buffer with physical pages when it is used. It is
 computationally expensive to populate
 large memory buffers frequently. When accessing high-throughput I/O devices,
 such overhead can cause substantial performance loss. Therefore, we keep a set
 of memory buffers allocated previously and reuse them for new I/O requests.
-For accessing a sparse matrix, tile rows usually have differnt sizes, so we resize
+For accessing a sparse matrix, tile rows usually have different sizes, so we resize
 a previously allocated memory buffer if it is too small for a new I/O request.
 
 \subsection{Parallelization}
@@ -216,16 +217,18 @@ We partition a sparse matrix horizontally for parallelization (Figure
 With horizontal partitioning, a thread only needs to read tile rows assigned
 to it from SSDs and processes them independently. Once the tile rows
 are ready in memory, the thread multiplies the tile rows with the input
-dense matrix. In addition, horizontal partitioning significantly reduce memory
-consumption, which is essential for semi-external memory computation because
-saved memory can be used to keep more columns in the input dense matrix in
-memory to significantly reduce I/O from SSDs (as discussed in Section
-\ref{sec:mem}). For example, horizontal partitioning ensures that
-only the thread assigned with the tile rows need to allocate local memory buffers
-for them. To reduce remote memory access in a NUMA machine, a thread needs to
-store the intermediate result in a local buffer when going through all the tiles
-in a partition. Horizontal partitioning also allows a small matrix index to
-locate non-zero entries in the sparse matrix quickly because we only need to
+dense matrix. Horizontal partitioning also significantly reduces memory
+consumption.
+%, which is essential for semi-external memory computation because
+%saved memory can be used to keep more columns in the input dense matrix in
+%memory to significantly reduce I/O from SSDs (as discussed in Section
+%\ref{sec:mem}).
+For example, horizontal partitioning ensures that only the thread assigned tile
+rows need to allocate local memory buffers to store the intermediate results
+when going through all the tiles in a partition. This is essential to reduce
+remote memory access in a NUMA
+machine. Horizontal partitioning also allows a small matrix index to
+locate non-zero entries in the sparse matrix quickly, because we only need to
 locate tile rows. As such,
 the matrix index is tiny even for a sparse matrix with billions of rows
 and we can keep the entire matrix index in memory.
@@ -235,38 +238,37 @@ better load blancing and large I/O writes to SSDs. A task may indicate
 the computation on a \textit{super tile} row or a single tile row.
 A thread gets one task at a time from the queue. To achieve good load balancing,
 threads get larger tasks at the beginning and smaller tasks when the computation
-gets close to the end. The other benefit of maintaining a global
-task queue is to maintain the global execution order, which becomes essential
+gets close to the end. The global task queue maintains the global execution
+order, which becomes essential
 when the output dense matrix needs to be written to SSDs. When a thread gets
-a task, the final computation result from the task may be small. Instead of
-writing the computation result immediately when it is generated, we delay
-writes in order to merge
+a task, the computation result from the task may be small. Instead of
+writing the computation result immediately, we delay writes in order to merge
 computation results from multiple threads and write them with a single I/O.
-As such, we need to use the global task queue to ensure that all threads are
+The global task queue to ensure that all threads are
 processing contiguous tile rows to help merge.
 
-\subsection{The impact of the memory size on I/O in semi-external memory}
+\subsection{The impact of the memory size on I/O}
 \label{sec:mem}
-The memory size has significant impact on I/O in semi-external memory.
+More memory reduces I/O in semi-external memory.
 The minimum memory requirement for semi-external memory sparse matrix
 multiplication is $n c + t \epsilon$, where $n$ is the number of rows
-of the input dense matrix, $c$ is the element size of the dense matrix,
+of the input dense matrix, $c$ is the element size in bytes,
 $t$ is the number of threads processing the sparse matrix
-and $\epsilon$ is the buffer size for part of the sparse matrix and the output
+and $\epsilon$ is the buffer size for the sparse matrix and the output
 dense matrix. When a machine does not have sufficient memory to keep the entire
 input dense matrix in memory, we need multiple passes on the sparse matrix to
-perform sparse matrix multiplication. As such, a larger memory size significantly
-reduces I/O. Reducing memory consumption is essential to achieve performance
-in semi-external memory because saved memory helps to keep more columns of
-the input dense matrix in memory to reduce I/O.
+perform sparse matrix multiplication. Reducing memory consumption is essential
+to achieve performance in semi-external memory. By keeping more columns of
+the input dense matrix in memory, we reduce the number of I/O passes.
 
 When a machine does not have sufficient memory to keep the entire input dense
-matrix, we should use the existing memory to keep as many columns in the input
+matrix, we use the existing memory to keep as many columns in the input
 dense matrix in memory as possible. Although we can use some memory to cache
 part of the sparse matrix,
 keeping more columns of the input dense matrix in memory saves more I/O than
 using the same amount of memory to cache the sparse matrix. Assume the input
-dense matrix has $n$ rows and $k$ columns. The storage size of the sparse
+dense matrix has $n$ rows and $k$ columns. Again, $c$ is the element size
+in bytes. The storage size of the sparse
 matrix is $E$ bytes and the memory size is $M$ bytes. We further assume
 we use $M'$ bytes to keep some columns of the dense matrices in memory
 ($M' < M$, ${n c k} \mod {M'} \equiv 0$)
@@ -275,11 +277,11 @@ The amount of data in the sparse matrix read from SSDs is
 \begin{equation*}
 IO_{in} = \frac{n c k}{M'} [E - (M - M')]
 \end{equation*}
-Because $E > M$ in semi-external memory, we can minimize $IO_{in}$ by maximizing $M'$.
+Because $E > M$ in semi-external memory, we minimize $IO_{in}$ by maximizing $M'$.
 Therefore, using memory for the input dense matrix always results in a smaller
 amount of I/O than using memory for caching the sparse matrix.
 
-As the number of columns from the input dense matrix kept in memory increases,
+As the number of columns in memory from the input dense matrix increases,
 the bottleneck of the system
 may switch. When we keep only one column of the input dense matrix in memory,
 the system is usually I/O bound; when we can keep more columns of the dense matrix
@@ -303,9 +305,8 @@ to no more I/O than the external-memory (EM) solution for many real-world graphs
 
 When a machine has sufficient memory to keep the entire input dense matrix
 in memory, the SEM solution only needs to read the sparse matrix and the input
-dense matrix once and write the output dense matrix once. This results in
-a minimum amount of I/O. As such, the SEM solution does not cause more I/O
-than any EM solutions.
+dense matrix once and write the output dense matrix once. This is
+a minimum amount of I/O.
 
 When a machine has insufficient memory to keep the input dense matrix, the SEM
 solution still leads to less I/O than the EM solution when $E < n c k t$.
@@ -338,11 +339,10 @@ the Page graph \cite{web_graph} and Friendster \cite{friendster}, the number
 of edges is of $10-100 \times$ the number of vertices. Essentially,
 natural graphs have sparse edge matrices. We target multi-core machines with
 10s to 100s of threads. For most of our applications, $k$ is of size 1-30.
-For very small $k$, the SEM
-solution can keep the entire input dense matrix in memory and leads to minimum
-I/O. For a relatively larger $k$, $E < n c k t$ holds
-for most of natural graphs. Therefore, the SEM solution usually performs less
-I/O than EM.
+For very small $k$, the SEM solution can keep the entire input dense matrix
+in memory and leads to minimum I/O. For a relatively larger $k$, $E < n c k t$
+holds for most of natural graphs when the graphs are processed in a large
+parallel machine. Therefore, the SEM solution usually performs less I/O than EM.
 
 \section{Applications} \label{sec:apps}
 We apply sparse matrix multiplication to three important applications widely
@@ -379,7 +379,7 @@ while (L1 >= epsilon && niters < max.niters) {
 }
 \end{minted}
 %\end{lstlisting}
-\caption{The implementation of PageRank with SpMM.}
+\caption{The implementation of PageRank \cite{pagerank} with SpMM.}
 \label{code:pagerank}
 \end{figure}
 
@@ -404,14 +404,12 @@ matrix multiplication and external-memory dense matrix operations. To compute
 eigenvalues of a $n \times n$ matrix, many eigenvalue algorithms for a large
 sparse matrix require to construct a vector subspace with a sequence of
 sparse matrix multiplication and each vector in the subspace has the length of $n$.
-Due to the sparsity of real-world graphs,
-the vector subspace requires substantial storage size and we keep
-some of the vectors in the subspace on SSDs. In addition to sparse matrix
+Due to the sparsity of real-world graphs, the vector subspace is large and we keep
+vectors in the subspace on SSDs. In addition to sparse matrix
 multiplication, eigensolvers perform some dense matrix operations on the subspace.
 For example, eigensolvers need to orthogonalize the vectors in the subspace with
 dense matrix multiplication. The Anasazi eigensolvers have block extension to
-update multiple
-vectors in the subspace simultaneously and thus require sparse matrix dense
+update multiple vectors in the subspace simultaneously and require sparse matrix dense
 matrix multiplication. The most efficient Anasazi eigensolver on sparse graphs
 is the KrylovSchur eigensolver \cite{krylovschur}, which updates a small number
 of vectors (1-4) in the subspace simultaneously. Zheng et al.
@@ -428,12 +426,12 @@ with external-memory matrix operations.
 %to reduce I/O for dense matrix operations.
 
 \subsection{Non-negative matrix factorization}
-Non-negative matrix factorization (NMF) \cite{nmf} is to find two non-negative
+Non-negative matrix factorization (NMF) \cite{nmf} finds two non-negative
 low-rank matrices $W$ and $H$ to approximate a matrix $A \approx WH$. NMF is
 typically used to find factorization on sparse matrices. NMF has many applications
 in machine learning
 and data mining. A well-known example is collaborative filtering \cite{cf} in
-recommender systems. NMF can also be applied to graphs, for example, to find communities
+recommender systems. NMF can also be applied to graphs to find communities
 \cite{yang13, wang11}.
 
 Many algorithms are designed to solve NMF and here we describe an algorithm
