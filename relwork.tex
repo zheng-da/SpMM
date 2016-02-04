@@ -20,7 +20,7 @@ Zhou et al.~\cite{Zhou12} implemented an LOBPCG \cite{Arbenz05} eigensolver in
 an SSD cluster. Their implementation targets nuclear many-body Hamiltonian
 matrices, which are much denser and have smaller dimensions than many sparse
 graphs. Therefore, their solution stores the sparse matrix on SSDs and keep
-the entire vector subspace in RAM. Their solution focuses on optimizations
+the entire vector subspace in RAM. They focus on optimizations
 in the distributed environment. In contrast, our eigensolver based on our
 SEM SpMM stores both
 the sparse matrix and the vector subspace on SSDs due to the large number
@@ -37,8 +37,8 @@ dense matrix operations. By default, Anasazi uses the matrix implementations
 in Trilinos that run in the distributed memory.
 
 Intel Math Kernel Library \cite{mkl} is an efficient and parallel linear
-algebra library with matrix operations specifically optimized for the Intel
-platform. It provides an efficient sparse matrix multiplication optimized
+algebra library with matrix operations specifically optimized for Intel
+platforms. It provides an efficient sparse matrix multiplication optimized
 for regular sparse matrices. In contrast, our sparse matrix multiplication
-routine is specifically optimized for natural graphs with power-law distribution
-in vertex degree and near-random vertex connection.
+kernal is specifically optimized for power-law graphs with near-random vertex
+connection.
