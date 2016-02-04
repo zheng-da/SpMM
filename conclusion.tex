@@ -1,22 +1,22 @@
-We present an alternative solution of scaling sparse matrix multiplication
+We present an alternative solution for scaling sparse matrix multiplication
 to large sparse matrices by utilizing commodity SSDs.
 We perform sparse matrix multiplication in semi-external memory (SEM), in which
 we keep the sparse matrix on SSDs and the dense matrices in memory. Semi-external
 memory increases scalability in proportion to the ratio of non-zero entries
 to rows or columns in a sparse matrix. It incorporates well with many memory
-optimizations for sparse matrix multiplication such as cache blocking and the NUMA
-optimization. We also deploy a set of I/O optimizations for high-speed SSDs
+optimizations for sparse matrix multiplication such as cache blocking and NUMA
+organization. We also deploy a set of I/O optimizations for high-speed SSDs
 such as I/O polling and preallocating memory buffers for I/O.
 
-Our SEM sparse matrix multiplication is able to achieve performance comparable
-to its in-memory counterparts while significantly outperforming the MKL and
+Our SEM sparse matrix multiplication achieves performance comparable
+to our highly optimized in-memory implementation while significantly outperforming
+the Intel MKL and
 Trilinos implementations. Our SEM implementation achieves almost 100\% performance
 of the in-memory implementation on some graphs when the dense matrices can fit
 in memory and have more than four columns. Even when the dense matrix has only
 one column, it achieves at least 65\% performance of its in-memory counterpart
-on different graphs. Furthermore, our SEM sparse matrix multiplication also
-scales to very large graphs with billions of vertices and hundreds of billions
-of edges.
+on different graphs. Our SEM sparse matrix multiplication also scales to very
+large graphs with billions of vertices and hundreds of billions of edges.
 
 For a machine with insufficient memory to keep the entire input dense matrix
 in memory, we partition the dense matrix vertically and run SEM SpMM multiple
@@ -31,12 +31,17 @@ how additional memory should be used in semi-external memory in each application
 We further demonstrate that each of our implementations significantly outperforms
 the state of art and can scale to very large graphs.
 
-Our SSD-based solution can also achieve very high energy efficiency even though
+Throughout the thorough evaluations, we demonstrate that semi-external memory
+coupled with fast SSDs achieves performance very close to highly optimized
+in-memory implementations and scales to massive datasets.
+As such, our approach provides a very promising alternative to distributed
+computation for large-scale data analysis.
+
+Our SSD-based solution also achieves very high energy efficiency even though
 we have not measured energy consumption explicitly. SSDs are energy-efficient
-storage media \cite{} compared with RAM and hard drives. When processing large
-datasets, our solution only uses
+storage media \cite{Tsirogiannis} compared with RAM and hard drives.
+When processing large datasets, our solution only uses
 a single machine and requires a relatively small amount of memory. In contrast,
 a distributed solution requires many more machines and much more aggregate
 memory in order to process datasets of the same size. As such, our solution
-introduces an energy-efficient architecture for many large-scale data analysis
-tasks.
+introduces an energy-efficient architecture for large-scale data analysis tasks.
