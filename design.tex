@@ -151,7 +151,7 @@ from a single row interval.
 
 \subsection{Runtime CPU optimizations} \label{sec:cpu}
 We perform runtime optimizations to speed up sparse matrix
-dense matrix multiplication. Runtime optimizations further increases
+dense matrix multiplication. Runtime optimizations further increase
 CPU cache hits and allows more efficient computation and memory access.
 
 To better utilize CPU cache, we process tiles of a partition in
@@ -176,6 +176,8 @@ The current implementation relies on GCC's auto-vectorization
 to translate the C code to the vector CPU instructions by predefining the matrix
 width in the code.
 
+\newpage
+
 \subsection{I/O optimizations}
 Semi-external memory sparse matrix multiplication results in sequential I/O.
 %by streaming the sparse matrix from SSDs and potentially streaming the output
@@ -186,7 +188,7 @@ We need to tackle these obstacles in order to achieve the maximal I/O
 throughput of fast SSDs.
 
 An application thread issues asynchronous I/O and polls for I/O to avoid thread
-context switches because the latency of context switch can undermine
+context switches because the latency of a context switch can undermine
 the sequential I/O throughput of a high-speed SSD array. When a thread issues
 I/O and waits for I/O completion, the operating system switches the thread
 out; the operating system reschedules the thread for execution once I/O is
@@ -244,8 +246,8 @@ when the output dense matrix needs to be written to SSDs. When a thread gets
 a task, the computation result from the task may be small. Instead of
 writing the computation result immediately, we delay writes in order to merge
 computation results from multiple threads and write them with a single I/O.
-The global task queue to ensure that all threads are
-processing contiguous tile rows to help merge.
+The global task queue to ensures that all threads are processing contiguous
+tile rows to help I/O merging.
 
 \subsection{The impact of the memory size on I/O}
 \label{sec:mem}
@@ -306,7 +308,7 @@ to no more I/O than the external-memory (EM) solution for many real-world graphs
 When a machine has sufficient memory to keep the entire input dense matrix
 in memory, the SEM solution only needs to read the sparse matrix and the input
 dense matrix once and write the output dense matrix once. This is
-a minimum amount of I/O.
+the minimum amount of I/O.
 
 When a machine has insufficient memory to keep the input dense matrix, the SEM
 solution still leads to less I/O than the EM solution when $E < n c k t$.
@@ -319,7 +321,7 @@ read_{SEM} = \frac{n c k}{M} E + n c k
 To minimize writes, the EM solution
 scans the sparse matrix once but reads the input dense matrix multiple times.
 Due to near random vertex connection in real-world graphs, the EM solution needs to
-read the entire input dense matrices each time. In the parallel setting,
+read the entire input dense matrix each time. In the parallel setting,
 the EM solution requires each thread to keep local memory buffers for portions
 of the input and output dense matrices. Assume the EM solution keeps $j$ rows
 from the input dense matrix and $i$ rows from the output dense matrix in memory
@@ -340,7 +342,7 @@ of edges is of $10-100 \times$ the number of vertices. Essentially,
 natural graphs have sparse edge matrices. We target multi-core machines with
 10s to 100s of threads. For most of our applications, $k$ is of size 1-30.
 For very small $k$, the SEM solution can keep the entire input dense matrix
-in memory and leads to minimum I/O. For a relatively larger $k$, $E < n c k t$
+in memory and leads to the minimum I/O. For a relatively larger $k$, $E < n c k t$
 holds for most of natural graphs when the graphs are processed in a large
 parallel machine. Therefore, the SEM solution usually performs less I/O than EM.
 
