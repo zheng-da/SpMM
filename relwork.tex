@@ -1,13 +1,13 @@
 Recent sparse matrix multiplication studies focus on in-memory optimizations
 for sparse matrix vector multiplication (SpMV). Williams et al.~\cite{Williams07}
 describe optimizations for SpMV in multicore architecture. Yoo et al.~\cite{Yoo11}
-and Boman et al.~\cite{Boman2013} optimize a distributed SpMV for large
+and Boman et al.~\cite{Boman2013} optimize distributed SpMV for large
 scale-free graphs with 2D edge partitioning to reduce communication between
 machines. In contrast, Sparse matrix dense matrix multiplication (SpMM) receives
 less attention from the high-performance computing community. Even though
 SpMM can be implemented with SpMV, SpMV fails to explore data locality in SpMM.
-Aktulga et al.~\cite{Aktulga14} optimize SpMM with cache blocking. We focus on
-advancing SpMM with a focus on optimizations for semi-external memory.
+Aktulga et al.~\cite{Aktulga14} optimize SpMM with cache blocking. We advance
+SpMM with a focus on optimizations for semi-external memory.
 
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
 framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
@@ -29,12 +29,12 @@ in a single machine.
 
 Anasazi \cite{anasazi} is an eigensolver framework in the Trilinos project
 \cite{trilinos}. This framework implements block extension of multiple
-eigensolver algorithms
-such as Block Krylov-Schur method \cite{krylovschur}, Block Davidson method
-\cite{Arbenz05} and LOBPCG \cite{Arbenz05}. This is a very flexible framework
+eigensolver algorithms such as Block Krylov-Schur \cite{krylovschur},
+Block Davidson \cite{Arbenz05} and LOBPCG \cite{Arbenz05}.
+This is a very flexible framework
 that allows users to redefine sparse matrix dense matrix multiplication and
 dense matrix operations. By default, Anasazi uses the matrix implementations
-in Trilinos that run in the distributed memory.
+in Trilinos that runs in distributed memory.
 
 Intel Math Kernel Library \cite{mkl} is an efficient and parallel linear
 algebra library with matrix operations specifically optimized for Intel
