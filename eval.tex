@@ -207,9 +207,9 @@ As more columns in the input dense matrix can fit in memory, the performance
 of SEM-SpMM constantly increases (Figure \ref{perf:spmm32}). When the memory
 can fit over four columns of the input dense matrix, SEM-SpMM gets over 50\%
 of the performance of IM-SpMM. Even when only one column of the input dense
-matrix can fit in memory, SEM-SpMM still gets 30\% of the in-memory
-performance. When the entire input dense matrix can fit in memory, we get over
-80\% of the in-memory performance.
+matrix can fit in memory, SEM-SpMM still gets 25\% of the in-memory performance.
+When the entire input dense matrix can fit in memory, we get about 80\% of
+the in-memory performance.
 
 \begin{figure}
 	\begin{center}
@@ -225,15 +225,16 @@ performance. When the entire input dense matrix can fit in memory, we get over
 Two main factors lead to performance loss in SEM-SpMM when the input dense matrix
 cannot fit in memory. We illustrate the contribution of four potential overheads
 in SEM-SpMM on the Friendster graph (Figure \ref{perf:spmm32_over}). The main
-performance loss comes from the loss of data locality in SpMM when we have to
-partition the input dense matrix vertically.
-Partitioning the dense matrix into one-column matrices contributes 60\%
-of performance loss. The performance loss caused by this factor drops quickly
-when the vertical partition size increases. Keeping the sparse matrix on SSDs
+performance loss comes from the loss of data locality in SpMM caused by
+vertical partitioning of the input dense matrix (Vert-part). Partitioning
+the dense matrix into one-column matrices contributes 60\% of performance loss.
+It drops quickly when the vertical
+partition size increases. Keeping the sparse matrix on SSDs (SpM-EM)
 also contributes some performance loss when the dense matrix is partitioned
 into small matrices. The overhead almost goes away when more than four columns
 of the dense matrix can fit in memory. The overhead of streaming the output dense
-matrix to SSDs and reading the input dense matrix to memory is less significant.
+matrix to SSDs (Out-EM) and reading the input dense matrix to memory (In-EM)
+is less significant but remains the same for different memory sizes.
 
 \subsection{Optimizations on sparse matrix multiplication}
 Accelerating SEM-SpMM requires both computation and I/O optimizations. Due to
@@ -257,7 +258,7 @@ and apply the optimizations incrementally in the following order:
 		computation (\textit{Vec}),
 \end{itemize}
 
-All of these optimizations have positive effect on sparse matrix
+All of these optimizations have positive effects on sparse matrix
 multiplication and all optimizations together speed up SpMM by $3-5$ times
 (Figure \ref{perf:spmm_opt}). The degree of effectiveness
 varies between different graphs and different numbers of columns in
@@ -277,7 +278,6 @@ it optimizes computation on a row of the dense matrix.
 %can no longer be in the CPU cache.
 With all optimizations, we have a fast in-memory implementation for both
 sparse matrix vector multiplication and sparse matrix dense matrix multiplication.
-We denote this implementation with IM-SpMM.
 
 \begin{figure}
 	\begin{center}
