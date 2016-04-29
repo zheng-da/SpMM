@@ -71,7 +71,7 @@ because its size exceeds memory capacity of our NUMA machine.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{spmm.im.vs.sem}
+		\include{SpMM_figs/spmm.im.vs.sem}
 		\caption{The performance of SEM-SpMM with dense matrices of different
 			numbers of columns, normalized to IM-SpMM for the dense matrix with
 			the same number of columns.}
@@ -108,14 +108,14 @@ connected with 10Gbps network.
 	\centering
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
-		\include{SpMV-awesomer}
+		\include{SpMM_figs/SpMV-awesomer}
 		\vspace{-10pt}
 		\caption{SpMV}
 		\label{perf:spmv}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
-		\include{SpMM-awesomer}
+		\include{SpMM_figs/SpMM-awesomer}
 		\vspace{-10pt}
 		\caption{SpMM with a dense matrix of 8 columns.}
 		\label{perf:spmm8}
@@ -151,7 +151,7 @@ MKL and Trilinos owing to its compact format for sparse matrices.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{SpMM-mem}
+		\include{SpMM_figs/SpMM-mem}
 		\caption{Memory consumption of different SpMM implementations on
 		RMAT-160.}
 		\label{perf:spmm_mem}
@@ -161,7 +161,7 @@ MKL and Trilinos owing to its compact format for sparse matrices.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{SpMV-EC2}
+		\include{SpMM_figs/SpMV-EC2}
 		\caption{The performance of our SEM-SpMV in our 48-core machine
 		and Trilinos in EC2 clusters normalized to IM-SpMV for the same graph.}
 		\label{perf:ec2}
@@ -195,7 +195,7 @@ cannot fit in memory.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{spmm-32cols}
+		\include{SpMM_figs/spmm-32cols}
 		\caption{The performance of SEM-SpMM with 32-column matrices
 			relative to IM-SpMM. SEM-SpMM is broken into multiple SEM-SpMMs
 		based on the memory size.}
@@ -214,7 +214,7 @@ the in-memory performance.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{spmm-32cols-overhead}
+		\include{SpMM_figs/spmm-32cols-overhead}
 		\caption{The overhead breakdown of SEM-SpMM on the Friendster
 			graph with a dense matrix of 32 columns when the number
 			of columns that fit in memory varies. }
@@ -282,7 +282,7 @@ sparse matrix vector multiplication and sparse matrix dense matrix multiplicatio
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{SpMM_optimize}
+		\include{SpMM_figs/SpMM_optimize}
 		\caption{The speedup of computation optimizations for SpMM on the Friendster
 			graph (F) and the Twitter graph (T) for different numbers of
 			columns in the dense matrices.}
@@ -366,7 +366,7 @@ to keep one vector in memory, which results in very small memory consumption.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{pagerank}
+		\include{SpMM_figs/pagerank}
 		\caption{The runtime of SpMM-PageRank in 30 iterations. The SEM
 			implementation keeps different numbers of vectors in memory.
 			We compare them with the implementations in FlashGraph and GraphLab
@@ -391,7 +391,7 @@ on the Page graph.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{eigen-runtime-8ev}
+		\include{SpMM_figs/eigen-runtime-8ev}
 		\caption{The preformance of our SEM KrylovSchur, our in-memory eigensolver
 			and the Trilinos eigensolvers when computing eight
 			eigenvalues. SEM-min keeps the entire vector subspace on SSDs and
@@ -424,7 +424,7 @@ the graphs in Table \ref{graphs}.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{NMF}
+		\include{SpMM_figs/NMF}
 		\caption{The runtime per iteration of SEM-NMF on directed graphs.
 			We vary the number of columns in the dense matrices that are kept
 		in memory to evaluate the memory size on the performance of SEM-NMF.}

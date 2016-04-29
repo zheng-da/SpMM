@@ -56,7 +56,7 @@
 \usepackage{gnuplot-lua-tikz}
 \usepackage{amssymb}
 \usepackage{amsmath}
-\usepackage{minted}
+%\usepackage{minted}
 %\usepackage{bm}
 \usepackage{paralist}
 %\usepackage{ulem}
@@ -65,6 +65,7 @@
 \usepackage{algpseudocode}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{authblk}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
 
 \lstset{
@@ -97,7 +98,7 @@
 \begin{document}
 
 % Copyright
-\setcopyright{acmcopyright}
+%\setcopyright{acmcopyright}
 %\setcopyright{acmlicensed}
 %\setcopyright{rightsretained}
 %\setcopyright{usgov}
@@ -113,7 +114,7 @@
 %\isbn{123-4567-24-567/08/06}
 
 %Conference
-\conferenceinfo{SPAA '16}{June 27 - 29, 2016, Asilomar State Beach, California, USA}
+%\conferenceinfo{SPAA '16}{June 27 - 29, 2016, Asilomar State Beach, California, USA}
 
 %\acmPrice{\$15.00}
 
@@ -162,47 +163,41 @@
 %
 
 %for single author (just remove % characters)
-\author{
-{\rm Da Zheng, Randal Burns}\\
-\footnotesize Department of Computer Science \\
-\footnotesize Johns Hopkins University
-\and
-{\rm Joshua Vogelstein}\\
-\footnotesize Institute for Computational Medicine \\
-\footnotesize Department of Biomedical Engineering \\
-\footnotesize Johns Hopkins University
-% copy the following lines to add more authors
-\and
-{\rm Alexander S. Szalay}\\
-\footnotesize Department of Physics and Astronomy \\
-\footnotesize Johns Hopkins University
-} % end author
+\author[1]{\rm Da Zheng}
+\author[1]{\rm Disa Mhembere}
+\author[2]{\rm Vince Lyzinski}
+\author[3]{\rm Joshua Vogelstein}
+\author[2]{\rm Carey E. Priebe}
+\author[1]{\rm Randal Burns}
+\affil[1]{Department of Computer Science, Johns Hopkins University}
+\affil[2]{Department of Applied Mathematics and Statistics, Johns Hopkins University}
+\affil[3]{Institute for Computational Medicine, Department of Biomedical Engineering, Johns Hopkins University}
 
-\date{30 November 2015}
+\date{4 February 2016}
 % Just remember to make sure that the TOTAL number of authors
 % is the number that will appear on the first page PLUS the
 % number that will appear in the \additionalauthors section.
 
 \maketitle
 \begin{abstract}
-Due to random memory access, sparse matrix multiplication is traditionally
-performed in memory and scales to large matrices using the distributed memory
-of multiple nodes.
+Owing to random memory access patterns, sparse matrix multiplication is
+traditionally performed in memory and scales to large matrices using
+the distributed memory of multiple nodes.
 In contrast, we scale sparse matrix multiplication by utilizing commodity
 SSDs. We implement sparse matrix dense matrix multiplication (SpMM) in
 a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
-and dense matrices in memory. As such, our SEM SpMM can incorporate with many
+and dense matrices in memory. Our SEM SpMM can incorporate many
 in-memory optimizations for large power-law graphs with near-random vertex
 connection. Coupled with many I/O optimizations, our SEM SpMM achieves performance
 comparable to our in-memory implementation on a large parallel machine and
 outperforms the implementations in Trilinos and Intel MKL.
 Our experiments show that the SEM SpMM achieves almost 100\% performance
-of the in-memory implementation on some graphs when the dense matrix has more
+of the in-memory implementation on graphs when the dense matrix has more
 than four columns; it achieves at least 65\% performance of the in-memory
 implementation for all of our graphs when the dense matrix has only one column.
 We apply our SpMM to three important data analysis applications and show that
 our SSD-based implementations can significantly outperform state of the art
-of these applications.
+of these applications and scale to billion-node graphs.
 \end{abstract}
 
 
@@ -269,8 +264,13 @@ of these applications.
 \section{Conclusions}
 \input{conclusion}
 
+\newpage
+
 %ACKNOWLEDGMENTS are optional
-%\section{Acknowledgments}
+\section{Acknowledgments}
+This work is partially supported by NSF ACI-1261715,
+DARPA GRAPHS N66001-14-1-4028 and
+DARPA SIMPLEX program through SPAWAR contract N66001-15-C-4041.
 
 %
 % The following two commands are all you need in the

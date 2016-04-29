@@ -46,7 +46,7 @@ a large storage size.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.3]{./sparse_mat.pdf}
+\includegraphics[scale=0.3]{SpMM_figs/sparse_mat.pdf}
 \caption{The format of a sparse matrix.}
 \label{sparse_mat}
 \end{figure}
@@ -70,7 +70,7 @@ size and the adaptibility to different numbers of columns.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.5]{./tile_format.pdf}
+\includegraphics[scale=0.5]{SpMM_figs/tile_format.pdf}
 \caption{The storage format of a tile in a sparse matrix.}
 \label{tile_format}
 \end{figure}
@@ -327,10 +327,10 @@ of the input and output dense matrices. Assume the EM solution keeps $j$ rows
 from the input dense matrix and $i$ rows from the output dense matrix in memory
 in each thread.
 \begin{equation*}
-(i c k + j c k) t = M => i < \frac{M}{c k t}
+(i c k + j c k) t = M \implies i < \frac{M}{c k t}
 \end{equation*}
 \begin{equation*}
-read_{EM} = \frac{n}{i} n c k + E =>  read_{EM} > \frac{n^2 c^2 k^2 t}{M} + E
+read_{EM} = \frac{n}{i} n c k + E \implies  read_{EM} > \frac{n^2 c^2 k^2 t}{M} + E
 \end{equation*}
 When $n c k < E < n c k t$, $read_{EM} > read_{SEM}$.
 When $E \leq n c k$, $read_{EM} > read_{SEM}$ for any $t \geq 2$.
@@ -371,16 +371,16 @@ matrix multiplication (Figure \ref{code:pagerank}).
 
 \begin{figure}
 \centering
-%\begin{lstlisting}
-\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
+%\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
+\begin{lstlisting}
 while (L1 >= epsilon && niters < max.niters) {
 	pr2 <- d/N+(1-d)*(A %*% (pr1/out.deg))
 	L1 <- sum(abs(pr1-pr2))
 	pr1 <- pr2
 	niters <- niters + 1
 }
-\end{minted}
-%\end{lstlisting}
+\end{lstlisting}
+%\end{minted}
 \caption{The implementation of PageRank \cite{pagerank} with SpMM.}
 \label{code:pagerank}
 \end{figure}
