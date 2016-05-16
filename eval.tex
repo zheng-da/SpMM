@@ -5,7 +5,8 @@ multiplication on multiple real-world billion-scale graphs including a web-page
 graph with 3.4 billion vertices. We first measure the performance of our
 semi-external memory implementation and compare it with multiple in-memory
 implementations: \textit{(i)} our in-memory implementation, \textit{(ii)} MKL
-and \textit{(iii)} Trilinos. We also demonstrate the effectiveness of
+(\textit{mkl\_dcsrmm}) and \textit{(iii)} Trilinos Tpetra. We also demonstrate
+the effectiveness of
 CPU and I/O optimizations on sparse matrix multiplication.
 We then evaluate the overall performance of the applications in Section
 \ref{sec:apps} and demonstrate the impact of the memory size on the applications.
@@ -49,10 +50,13 @@ edges. The largest graph is the Page graph with 3.4 billion vertices
 and 129 billion edges, which is two orders of magnitude larger than the smallest
 graphs. We generate two synthetic graphs with R-Mat \cite{rmat} to fill the size
 gap between the smallest and largest graph. We construct a directed and
-undirected version for each of the synthetic graphs
-because some applications in Section \ref{sec:apps} run on directed graphs
-and some run on undirected graphs. We always use the undirected version for
-performance evaluation of sparse matrix multiplication. The Page graph is clustered
+undirected version for each of the synthetic graphs because some applications
+in Section \ref{sec:apps} run on directed graphs and some run on undirected
+graphs. The real-world datasets are publically available and the synthetic
+datasets are generated with the RMAT implementation in the \textit{boost}
+library\footnote{We use the parameters of $a=0.57$, $b=0.19$, $c=0.19$,
+$d=0.05$.}. We always use the undirected version for performance evaluation of
+sparse matrix multiplication. The Page graph is clustered
 by domain, generating good CPU cache hit rates in sparse matrix multiplication.
 
 \subsection{The performance of sparse matrix multiplication}
@@ -81,7 +85,8 @@ because its size exceeds memory capacity of our NUMA machine.
 
 We first compare the performance of SEM-SpMM against IM-SpMM on all graphs with
 the input and output dense matrices stored in memory. In this case, the dense
-matrices involved in SpMM have a small number of columns.
+matrices involved in SpMM have a small number of columns. We use Intel MKL 2015
+and Trilinos v12.0.1 for the experiments.
 
 There is only a small performance penalty for semi-external memory (Figure
 \ref{perf:spmm_comp}). The performance gap between IM-SpMM and SEM-SpMM
@@ -101,7 +106,7 @@ both shared memory and distributed memory, so we measure its performance in
 our 48-core NUMA machine as well as an EC2 cluster. We run Trilinos in the largest
 EC2 instances r3.8xlarge, where each has 16 physical CPU cores and 244GB of RAM
 and is optimized for memory-intensive applications. The EC2 instances are
-connected with 10Gbps network.
+connected with 10Gbps network in the same placement group.
 
 \begin{figure}
 	\footnotesize
@@ -134,7 +139,7 @@ vector multiplication (SpMV) and sparse matrix dense matrix multiplication (SpMM
 The Trilinos implementation is optimized for SpMV. Our SEM-SpMM still
 constantly outperforms Trilinos by a factor of $2-3$ even for SpMV. The MKL
 implementation has better optimizations for SpMM, but our SEM-SpMM can still
-almost twice as fast as MKL when the dense matrix has eight columns.
+be almost twice as fast as MKL when the dense matrix has eight columns.
 
 SEM-SpMM only consumes a small fraction of memory compared with IM-SpMM and
 other SpMM implementations (Figure \ref{perf:spmm_mem}). SEM-SpMM consumes
@@ -183,11 +188,13 @@ distributed implementations that partition data.
 
 We further measure the performance of SEM-SpMM with a large input dense matrix,
 in which neither the sparse matrix nor the dense matrices can fit in memory.
-In this experiment, we measure the performance of
-multiplying a sparse matrix with a dense matrix of 32 columns and the input
-dense matrix is stored on SSDs initially. We study the impact of memory size
-on the performance of SEM-SpMM by artificially varying the number of columns
-that can fit in memory. In each run, we need to load the input dense matrix from
+In this experiment, we measure the performance of multiplying a sparse matrix
+with a dense matrix of 32 columns and the input dense matrix is stored on SSDs
+initially. We study the impact of memory size on the performance of SEM-SpMM
+by varying the number of columns that can fit in memory. SEM-SpMM accesses
+the sparse matrix with direct I/O and, thus, varying the number of columns
+in the dense matrix that fit in memory does not affect data access to the
+sparse matrix. In each run, we need to load the input dense matrix from
 SSDs and stream the output dense matrix to SSDs. We do not show the result on
 the Page graph because the dense matrix with 32 columns for the Page graph
 cannot fit in memory.
@@ -342,10 +349,11 @@ frameworks. We compare the performance of SpMM-PageRank with the state-of-art
 implementations in FlashGraph \cite{flashgraph}, a semi-external memory graph
 engine, and GraphLab create, the next generation of PowerGraph \cite{powergraph}.
 The PageRank implementation in FlashGraph computes
-approximate PageRank values while SpMM-PageRank and GraphLab Create computes
+approximate PageRank values while SpMM-PageRank and GraphLab Create compute
 exact PageRank values. We run GraphLab Create completely in memory and run
 FlashGraph in semi-external memory. GraphLab Create is not able to compute
-PageRank on the Page graph.
+PageRank on the Page graph. We use FlashGraph v0.3 and a trial version of
+GraphLab Create v1.9.
 
 SpMM-PageRank in memory and in semi-external memory both significantly outperforms
 the implementations in FlashGraph and GraphLab Create (Figure \ref{perf:pagerank})
@@ -419,7 +427,7 @@ a high-performance NMF implementation SmallK \cite{SmallK}, built on top of
 the numeric library Elemental \cite{elemental}. We factorize
 each of the graphs into two $n \times k$ non-negative dense matrices and
 we use $k=16$ because $16$ is the largest $k$ that SmallK supports for
-the graphs in Table \ref{graphs}.
+the graphs in Table \ref{graphs}. We use SmallK v1.6 and Elemental v0.85.
 
 \begin{figure}
 	\begin{center}

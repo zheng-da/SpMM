@@ -32,13 +32,12 @@ in semi-external memory as before and stream the output matrix to SSDs.
 %the memory size.
 
 \subsection{Sparse matrix format}
-To support efficient sparse matrix multiplication in semi-external memory,
-we need to use an alternative format for sparse matrices to increase CPU cache
-hits and reduce the amount of data read from SSDs.
-The state-of-art numeric libraries store a sparse matrix in compressed row storage
-(CSR) or compressed column storage (CSC) format. However, these formats incur
-many CPU cache misses in sparse matrix multiplication on real-world graphs
-due to nearly random vertex connection. They also require a relatively large
+To support efficient sparse matrix multiplication on graphs in semi-external
+memory, we need to use an alternative format for sparse matrices to increase
+CPU cache hits and reduce the amount of data read from SSDs. Compressed row
+storage (CSR) or compressed column storage (CSC) format are not designed for
+graphs because these formats incur many CPU cache misses.
+They also require a relatively large
 storage size. For a sparse matrix with billions of non-zero entries, we have
 to use eight bytes to store the row and column indices. For SEM sparse
 matrix multiplication, SSDs may become the bottleneck if a sparse matrix has
@@ -58,11 +57,12 @@ involved in the multiplication with the tile are always kept in the CPU cache
 during the computation. The optimal tile size should fill the CPU cache
 with the rows of the dense matrices involved in the multiplication with
 the tile and is affected by the number of columns of the dense matrices,
-specified by applications. Instead of generating a sparse matrix with
-different tile sizes optimized for different numbers of columns in the dense
-matrices, we use a relatively small tile size and rely on the runtime system
+specified by applications. To handle dense matrices with different numbers
+of columns, we deploy both static cache blocking and dynamic cache blocking.
+As such, we generate sparse matrices with a relatively small tile size and
+rely on the runtime system
 to optimize for different numbers of columns (Section \ref{sec:cpu}).
-However, a small tile size potentially increases the storage size of the sparse
+However, a small tile size potentially increases the storage size of a sparse
 matrix. In semi-external memory, the dense matrices usually have
 a very small number of columns in sparse matrix multiplication. Therefore, we
 use the tile size of $16K \times 16K$ by default to balance the matrix storage
@@ -76,22 +76,22 @@ size and the adaptibility to different numbers of columns.
 \end{figure}
 
 To reduce the overall storage size of a sparse matrix, we use a compact format
-to store non-zero entries in a tile. In very sparse matrices
-many rows in a tile do not have any non-zero entries.
-The CSR (CSC) format requires an entry for each row (column) in the row
-(column) index. Therefore, the CSR or CSC format wastes space when storing elements
-in a tile. Instead, we only keep data for rows with non-zero entries in a tile
-shown in Figure \ref{tile_format} and refer to this format as SCSR (Super
-Compressed Row Storage). This format maintains a row header for each non-empty
-row. A row header has an identifier to indicate the row number, followed by
-column indices. 
+to store non-zero entries in a tile. In very sparse matrices many rows in a tile
+do not have any non-zero entries. The CSR or CSC format wastes space because
+they require an entry for each row/column in the row/column index.
+We use a format that is similar to doubly
+compressed sparse column (DCSC) \cite{Buluc08} but even more compact. We refer
+to this format as SCSR (Super Compressed Row Storage) (Figure \ref{tile_format}).
+This format keeps data only for rows with non-zero entries in a tile and
+maintains a row header for each non-empty row. A row header has an identifier
+to indicate the row number, followed by column indices. 
 The most significant bit of the identifier is always set to 1, while the most
 significant bit of a column index entry is always set to 0. As such, we can easily
 distinguish a row identifier from a column index entry and determine the end
-of a row. Thanks to the small size of a tile, we use two bytes to further store a row
-number and a column index entry to reduce the storage size. Since the most
-significant bit is used to indicate the beginning of a row, this format allows
-a maximum tile size of $32K \times 32K$.
+of a row. Thanks to the small size of a tile, we use two bytes to store a row
+number and a column index entry, which further reduces the storage size. Since
+the most significant bit is used to indicate the beginning of a row, this format
+allows a maximum tile size of $32K \times 32K$.
 
 Inside each cache tile of the SCSR, we use the coordinate format (COO) for
 the rows that have only a single non-zero entry. For the adjacency matrices of
@@ -152,7 +152,7 @@ from a single row interval.
 \subsection{Runtime CPU optimizations} \label{sec:cpu}
 We perform runtime optimizations to speed up sparse matrix
 dense matrix multiplication. Runtime optimizations further increase
-CPU cache hits and allows more efficient computation and memory access.
+CPU cache hits and allow more efficient computation and memory access.
 
 To better utilize CPU cache, we process tiles of a partition in
 \textit{super tile}s (Figure \ref{sparse_mat}). The tile size of a sparse
@@ -176,12 +176,11 @@ The current implementation relies on GCC's auto-vectorization
 to translate the C code to the vector CPU instructions by predefining the matrix
 width in the code.
 
-\newpage
-
 \subsection{I/O optimizations}
 Semi-external memory sparse matrix multiplication results in sequential I/O.
-%by streaming the sparse matrix from SSDs and potentially streaming the output
-%dense matrix to SSDs.
+Streaming the sparse matrix from SSDs results in no cache hits in the Linux
+page cache when the sparse matrix size is larger than main memory. As such,
+we access data of the sparse matrix on SSDs with direct I/O.
 For accessing data in fast SSDs sequentially, the overhead of operating systems
 such as thread context switch and memory allocation becomes noticeable.
 We need to tackle these obstacles in order to achieve the maximal I/O
@@ -236,7 +235,7 @@ the matrix index is tiny even for a sparse matrix with billions of rows
 and we can keep the entire matrix index in memory.
 
 We maintain a global task queue for sparse matrix multiplication to achieve
-better load blancing and large I/O writes to SSDs. A task may indicate
+better load balancing and large I/O writes to SSDs. A task may indicate
 the computation on a \textit{super tile} row or a single tile row.
 A thread gets one task at a time from the queue. To achieve good load balancing,
 threads get larger tasks at the beginning and smaller tasks when the computation
@@ -246,7 +245,7 @@ when the output dense matrix needs to be written to SSDs. When a thread gets
 a task, the computation result from the task may be small. Instead of
 writing the computation result immediately, we delay writes in order to merge
 computation results from multiple threads and write them with a single I/O.
-The global task queue to ensures that all threads are processing contiguous
+The global task queue ensures that all threads are processing contiguous
 tile rows to help I/O merging.
 
 \subsection{The impact of the memory size on I/O}
@@ -365,25 +364,25 @@ iteratively and its update rule for each Web pages in an iteration is
 PR(u) = \frac{1-d}{N} + d \sum\limits_{v \in B(u)} \frac{PR(v)}{L(v)}
 \end{equation*}
 where $B(u)$ denotes the neighbor list of vertex $u$ and $L(v)$ denotes
-the out-degree of vertex $v$. We implement the PageRank algorithm with sparse
-matrix multiplication (Figure \ref{code:pagerank}).
+the out-degree of vertex $v$. %We implement the PageRank algorithm with sparse
+%matrix multiplication (Figure \ref{code:pagerank}).
 
 
-\begin{figure}
-\centering
-%\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
-\begin{lstlisting}
-while (L1 >= epsilon && niters < max.niters) {
-	pr2 <- d/N+(1-d)*(A %*% (pr1/out.deg))
-	L1 <- sum(abs(pr1-pr2))
-	pr1 <- pr2
-	niters <- niters + 1
-}
-\end{lstlisting}
-%\end{minted}
-\caption{The implementation of PageRank \cite{pagerank} with SpMM.}
-\label{code:pagerank}
-\end{figure}
+%\begin{figure}
+%\centering
+%%\begin{minted}[mathescape, fontsize=\scriptsize,]{r}
+%\begin{lstlisting}
+%while (L1 >= epsilon && niters < max.niters) {
+%	pr2 <- d/N+(1-d)*(A %*% (pr1/out.deg))
+%	L1 <- sum(abs(pr1-pr2))
+%	pr1 <- pr2
+%	niters <- niters + 1
+%}
+%\end{lstlisting}
+%%\end{minted}
+%\caption{The implementation of PageRank \cite{pagerank} with SpMM.}
+%\label{code:pagerank}
+%\end{figure}
 
 %Based on the memory size, we can place different data in memory to reduce I/O.
 %When the memory can only fit a single vector, each iteration needs

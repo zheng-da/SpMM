@@ -9,6 +9,23 @@ SpMM can be implemented with SpMV, SpMV fails to explore data locality in SpMM.
 Aktulga et al.~\cite{Aktulga14} optimize SpMM with cache blocking. We advance
 SpMM with a focus on optimizations for semi-external memory.
 
+Compressed row storage (CSR) or compressed column storage (CSC) format are commonly
+used sparse matrix formats in many numeric libraries such as Intel MKL \cite{mkl}
+and Trilinos \cite{trilinos}. However, these formats are not designed for graphs
+and sparse matrix multiplication with these formats on graphs incurs many random
+memory accesses.
+More modern sparse matrix formats have been designed.
+Sparsity \cite{Im04} proposes both register blocking and cache blocking to
+increase data reuse in CPU cache for sparse matrix multiplication. Register blocking
+requires to explicitly store zero values in register blocks. Sparse matrices
+that encode graphs are very sparse and have non-zero entries distributed nearly
+randomly. Thus, register blocking significantly wastes space and computation
+for graphs. Buluc et al.~\cite{Buluc08} further advances sparse matrix format
+by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
+partitioning on the sparse matrix. This format significantly reduces the storage
+size of a 2D-partitioned sparse matrix. We further advance the sparse matrix
+format with a focus on reducing the storage size of a sparse matrix.
+
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
 framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
 semi-external memory graph traversal algorithms for SSDs. FlashGraph
