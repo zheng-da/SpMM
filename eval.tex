@@ -163,16 +163,6 @@ MKL and Tpetra owing to its compact format for sparse matrices.
 \end{figure}
 
 \begin{figure}
-	\begin{center}
-		\footnotesize
-		\include{SpMM_figs/SpMV-EC2}
-		\caption{The performance of our SEM-SpMV in our 48-core machine
-		and Trilinos Tpetra in EC2 clusters normalized to IM-SpMV for the same graph.}
-		\label{perf:ec2}
-	\end{center}
-\end{figure}
-
-\begin{figure}
 	\footnotesize
 	\centering
 	\begin{subfigure}[b]{0.5\textwidth}
@@ -180,21 +170,21 @@ MKL and Tpetra owing to its compact format for sparse matrices.
 		\include{SpMM_figs/SpMV-EC2}
 		\vspace{-10pt}
 		\caption{SpMV}
-		\label{perf:spmv}
+		\label{perf:ec2:spmv}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
 		\include{SpMM_figs/SpMM-EC2}
 		\vspace{-10pt}
 		\caption{SpMM with a dense matrix of 8 columns.}
-		\label{perf:spmm8}
+		\label{perf:ec2:spmm8}
 	\end{subfigure}
 	\vspace{3pt}
 	\caption{The performance of our SEM-SpMM on our 48-core machine (SEM) and
 		Trilinos Tpetra in EC2 clusters (2xEC2, 4xEC2 and 8xEC2), normalized to
 		IM-SpMM for the same graphs. We also show the performance of IM-SpMM on
 	one of the EC2 instance (IM-EC2) where Trilinos Tpetra runs.}
-	\label{perf:spmm}
+	\label{perf:ec2}
 \end{figure}
 
 Our SEM-SpMM also outperforms Trilinos Tpetra that runs in the Amazon cloud
