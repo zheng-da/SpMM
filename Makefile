@@ -1,7 +1,7 @@
 #LATEX = pdflatex
 LATEX = pdflatex -shell-escape
 SPELL = aspell
-TEX = SPAA16
+TEX = SpMM
 BIBTEX = bibtex
 
 default: $(TEX).tex 
