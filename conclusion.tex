@@ -1,6 +1,6 @@
 We present an alternative solution for scaling sparse matrix multiplication
-to large sparse matrices by utilizing commodity SSDs.
-We perform sparse matrix multiplication in semi-external memory (SEM), in which
+to large sparse matrices by utilizing commodity SSDs. We perform this operation
+in semi-external memory (SEM), in which
 we keep the sparse matrix on SSDs and the dense matrices in memory. Semi-external
 memory increases scalability in proportion to the ratio of non-zero entries
 to rows or columns in a sparse matrix. It incorporates well with many memory
@@ -23,13 +23,13 @@ in memory, we partition the dense matrix vertically and run SEM SpMM multiple
 times. In this case, the main overhead of SEM SpMM comes from the loss of
 data locality caused by vertical partitioning on the dense matrix. However,
 given sufficient memory to keep a small number of columns of the input dense
-matrix, we can achieve performance comparable to the in-memory counterpart.
+matrix, we achieve performance comparable to the in-memory counterpart.
 
 We apply our sparse matrix multiplication to three important applications:
 PageRank, eigendecomposition and non-negative matrix factorization. We demonstrate
 how additional memory should be used in semi-external memory in each application.
-We further demonstrate that each of our implementations significantly outperforms
-the state of art and can scale to very large graphs.
+We further demonstrate that each of our implementations significantly outperform
+the state of art and scale to very large graphs.
 
 Through the thorough evaluation, we demonstrate that semi-external memory
 coupled with fast SSDs achieves performance very close to highly optimized
