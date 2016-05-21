@@ -11,7 +11,8 @@ the algorithms, such as PageRank and SVD, require sparse matrix vector
 multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
 
-The largest sparse matrices arise from graph datasets in which one performs
+The largest sparse matrices arise from graph datasets such as social networks
+and Web graphs, in which one performs
 sparse matrix multiplication for graph analysis such as community detection
 with NMF and spectral analysis with SVD. These matrices inherit structure
 from natural graphs. Specifically,
@@ -22,15 +23,15 @@ the number of non-zero entries per row and column.
 % Why is it hard?
 
 It is challenging to have an efficient implementation of sparse matrix
-multiplication, especially for sparse matrices that encode real-world graphs
-such as social networks
-and Web graphs. Sparse matrix multiplication is notorious for achieving only
+multiplication, especially for sparse matrices that encode real-world graphs.
+Sparse matrix multiplication is notorious for achieving only
 a small fraction of the peak performance of a modern processor \cite{Williams07}.
 It becomes even more challenging to perform this operation on graphs due to
-random memory access caused by near-random connection and load imbalancing
-caused by the power-law distribution in vertex degree. Many real-world graphs
+random memory access caused by near-random vertex connection and load imbalancing
+caused by the power-law distribution in vertex degree. Furthermore, many
+real-world graphs
 are enormous. For example, Facebook's social network has billions of vertices
-and today's web graphs are much larger. %Furthermore, graphs cannot be
+and today's Web graphs are even much larger. %Furthermore, graphs cannot be
 %clustered or partitioned effectively \cite{leskovec} to localize access.
 Therefore, sparse matrix multiplication on graphs is frequently the bottleneck
 in an application.
@@ -56,7 +57,7 @@ memory such as solid-state drives (SSDs) to further extend memory capacity.
 This conforms to the node design for supercomputers \cite{Ang14}.
 
 We explore a solution that scales sparse matrix dense matrix multiplication
-(SpMM) on a multi-core machine with commodity solid-state drives (SSDs) and
+(SpMM) on a multi-core machine with commodity SSDs and
 perform SpMM in semi-external memory (SEM). The concept of semi-external memory
 arose as a functional computing approach for graphs \cite{Abello98} in which
 the vertex state of a graph is stored in memory and the edges accessed from
@@ -77,19 +78,20 @@ to the ratio of non-zero entries to rows or columns in a sparse matrix.
 % Why is it new/different/special?
 
 We have to overcome many technical challenges to construct a sparse matrix
-multiplication implementation on SSDs to achieve performance comparable to in-memory
-counterparts. Even though SSDs have high IOPS, sequential I/O is preferred
-because it sequential I/O throughput is significantly higher than random I/O
-\cite{safs}. In addition, random writes are harmful to SSDs \cite{sfs} because
-they decrease I/O throughput and shorten the lives of SSDs. Furthermore,
-SSDs are an order of magnitude slower than DRAM in throughput.
+multiplication implementation on SSDs to achieve performance. Even though SSDs
+are fast, they are still an order of magnitude slower than DRAM in throughput
+and multiple orders of magnitude slower than DRAM in latency.
+To maximize I/O throughput, sequential I/O is preferred because it has much
+higher throughput than random I/O \cite{safs}. In addition, random writes are
+harmful to SSDs \cite{sfs} because
+they decrease I/O throughput and shorten the lives of SSDs.
 
 Semi-external memory provides a scalable SpMM solution that incorporates well
 with I/O access to SSDs, parallelization and in-memory optimizations.
 It streams the sparse matrix from SSDs for computation, which results in maximal
 I/O throughput from SSDs. It streams the output matrix to SSDs only once if
-the memory is insufficient to store the output matrix, resulting in
-the minimum amount of data written to SSDs and maximizing I/O throughput.
+the memory is insufficient to store the output matrix, minimizing writes to
+SSDs and maximizing I/O throughput.
 We compress the sparse matrix to further accelerate retrieving the sparse
 matrix from SSDs. In the parallel setting, each thread streams its own partitions
 of the sparse matrix to memory and performs computation.
@@ -120,7 +122,7 @@ and the impact of the memory size on the performance of the applications.
 % What are it's key features?
 
 Our result shows that for real-world sparse graphs, our SEM sparse matrix
-multiplication can achieve almost 100\% performance of our in-memory implementation
+multiplication achieves almost 100\% performance of our in-memory implementation
 on a large parallel machine with 48 CPU cores
 when the dense matrix has more than four columns. Even for sparse matrix vector
 multiplication, our SEM implementation achieves at least 65\% performance of
@@ -128,7 +130,7 @@ our in-memory implementation and significantly outperforms Trilinos \cite{trilin
 and MKL \cite{mkl}. The applications implemented with our SpMM significantly
 outperform the state-of-art implementations of these applications. As such,
 we conclude that semi-external memory coupled with SSDs delivers an efficient
-solution for large-scale sparse matrix multiplication. It can also serve
+solution for large-scale sparse matrix multiplication. It also serves
 as a building block and offers new design possibilities for large-scale
 data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
 and processing bigger problems on fewer machines. The code of this work is
