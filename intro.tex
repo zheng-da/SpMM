@@ -1,5 +1,5 @@
 % What problem are you going to solve.
-Sparse matrix multiplication is very important computation with a wide variety
+Sparse matrix multiplication is a very important computation with a wide variety
 of applications in scientific computing, machine learning and data mining.
 For example, matrix factorization algorithms on a sparse matrix such as
 singular value decomposition (SVD) \cite{svd} and non-negative matrix
@@ -71,7 +71,7 @@ SpMV, such an implementation would fail to explore data locality in SpMM and
 result in higher I/O access in semi-external memory. We optimize SpMM directly
 to overcome these problems. Given fast SSDs, we demonstrate that the SEM
 solution uses the resources of a multi-core machine well and
-achieves performance comparable to state-of-art in-memory implementations
+achieves performance comparable to state-of-the-art in-memory implementations
 for sparse matrix multiplication while increasing the scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
 
@@ -128,10 +128,10 @@ when the dense matrix has more than four columns. Even for sparse matrix vector
 multiplication, our SEM implementation achieves at least 65\% performance of
 our in-memory implementation and significantly outperforms Trilinos \cite{trilinos}
 and MKL \cite{mkl}. The applications implemented with our SpMM significantly
-outperform the state-of-art implementations of these applications. As such,
+outperform the state-of-the-art implementations of these applications. As such,
 we conclude that semi-external memory coupled with SSDs delivers an efficient
 solution for large-scale sparse matrix multiplication. It also serves
 as a building block and offers new design possibilities for large-scale
 data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
 and processing bigger problems on fewer machines. The code of this work is
-released as open source (http://flashx.io/).
+released as open source at http://flashx.io.
