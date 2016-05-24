@@ -148,7 +148,7 @@ We perform runtime optimizations to speed up sparse matrix
 dense matrix multiplication. Runtime optimizations further increase
 CPU cache hits and allow more efficient computation and memory access.
 
-To better utilize CPU cache, we process tiles of a partition in
+To better utilize the CPU cache, we process tiles of a partition in
 \textit{super tile}s (Figure \ref{sparse_mat}). The tile size of a sparse
 matrix is specified when the sparse matrix image is created and is relatively
 small to handle different numbers of columns in the dense matrices.
@@ -182,7 +182,8 @@ We tackle these obstacles to maximize I/O throughput.
 We issue asynchronous I/O and poll for I/O to avoid thread
 context switches because the latency of a context switch can undermine
 the sequential I/O throughput of a high-speed SSD array. When a thread issues
-I/O and waits for I/O completion, the operating system switches the thread
+an I/O request and waits for I/O completion, the operating system switches
+the thread
 out; the operating system reschedules the thread for execution once I/O is
 complete. However, there is latency for thread rescheduling and the latency
 from frequent rescheduling can cause noticeable performance degradation
@@ -221,16 +222,15 @@ when going through all tiles in a partition. This is essential to reduce
 remote memory access in a NUMA
 machine. Horizontal partitioning also allows a small matrix index to
 locate non-zero entries in a sparse matrix quickly, because we only need to
-locate tile rows. As such,
-the matrix index is tiny even for a sparse matrix with billions of rows
-and we can keep the entire matrix index in memory.
+locate tile rows. As such, the matrix index is tiny even for a sparse matrix
+with billions of rows, permitting us to keep the entire matrix index in memory.
 
 We maintain a global task queue for sparse matrix multiplication to achieve
 better load balancing and large I/O writes to SSDs. A task may indicate
 computation on a \textit{super tile} row or a single tile row.
 A thread gets one task at a time from the queue. To achieve good load balancing,
 threads get larger tasks at the beginning and smaller tasks when the computation
-gets close to the end. The global task queue maintains a global execution
+approaches completion. The global task queue maintains a global execution
 order, which is essential
 when the output dense matrix needs to be written to SSDs. When a thread gets
 a task, the computation result from the task may be small. Instead of
@@ -396,7 +396,7 @@ replace its original matrix operations with our SEM sparse
 matrix multiplication and external-memory dense matrix operations. To compute
 eigenvalues of a $n \times n$ matrix, many eigenvalue algorithms for a large
 sparse matrix require to construct a vector subspace with a sequence of
-sparse matrix multiplication and each vector in the subspace has the length of $n$.
+sparse matrix multiplications and each vector in the subspace has the length of $n$.
 Due to the sparsity of real-world graphs, the vector subspace is large and we keep
 vectors in the subspace on SSDs. In addition to sparse matrix
 multiplication, eigensolvers perform some dense matrix operations on the subspace.
@@ -420,15 +420,14 @@ with external-memory matrix operations.
 
 \subsection{Non-negative matrix factorization}
 Non-negative matrix factorization (NMF) \cite{nmf} finds two non-negative
-low-rank matrices $W$ and $H$ to approximate a matrix $A \approx WH$. NMF is
-typically used to find factorization on sparse matrices. NMF has many applications
-in machine learning
+low-rank matrices $W$ and $H$ to approximate a matrix $A \approx WH$. NMF
+has many applications in machine learning
 and data mining. A well-known example is collaborative filtering \cite{cf} in
 recommender systems. NMF can also be applied to graphs to find communities
 \cite{yang13, wang11}.
 
 Many algorithms are designed to solve NMF and here we describe an algorithm
-\cite{nmf} that requires a sequence of sparse matrix multiplication.
+\cite{nmf} that requires a sequence of sparse matrix multiplications.
 The algorithm uses multiplicative update rules and updates matrices $W$ and $H$
 alternately. In each iteration, the algorithm first fixes $W$ to update $H$
 and then fixes $H$ to update $W$.
@@ -439,9 +438,9 @@ W_{ia} \leftarrow W_{ia} \frac{{(AH^T)}_{ia}}{{(WHH^T)}_{ia}}
 
 We apply SEM sparse matrix multiplication to NMF differently
 based on the memory size and the number of columns in $W$ and $H$. Due to
-the sparsity of a graph, $W$ and $H$ may require the storage as large as
+the sparsity of a graph, $W$ and $H$ may require storage as large as
 the sparse matrix and can no longer fit in
-memory. Therefore, we need to partition $W$ and $H$ vertically and run multiple
+memory. Therefore, we partition $W$ and $H$ vertically and run multiple
 sparse matrix multiplications to compute $W^TA$ and $AH^T$, if the memory is not
 large enough.
 
