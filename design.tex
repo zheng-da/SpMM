@@ -143,6 +143,82 @@ from a single row interval.
 %\label{dense_mat}
 %\end{figure}
 
+\begin{algorithm}
+	\caption{Perform sparse matrix multiplication on tile rows of a sparse
+	matrix in a thread.}
+	\label{alg:exec}
+	\begin{algorithmic}[1]
+		\Procedure{ProcessRowTiles}{TRQueue}
+		\While{$|TRQueue| > 0$}
+		\If {$|TRQueue| > thres$} \State $NumTRs \gets STileSize$
+		\Else \State $NumTRs \gets 1$
+		\EndIf
+		\State $STR \gets get\_tile\_rows(TRQueue, NumTRs)$
+		\State $read(STR, callback=ProcessSTRow)$
+		\If {$pendingIOs > maxIOs$} \State wait for I/O
+		\EndIf
+		\EndWhile
+		\EndProcedure
+
+		\Procedure{ProcessSTRow}{STR}
+		\State $STRowIdx \gets get\_start\_row(STR)$
+		\State $outBuf \gets matrix(0, nrow(tile), ncol(inMat))$
+		\State $STs \gets get\_super\_tiles(STR)$
+		\For{$ST \in STs$}
+		\State $tiles \gets get\_tiles(ST)$
+		\For{$tile \in tiles$}
+		\State $colIdx \gets get\_start\_col(tile)$
+		\State $numCols \gets get\_num\_cols(tile)$
+		\State $rowIdx \gets get\_start\_row(tile)$
+		\State $lRowIdx \gets rowIdx - STRowIdx$
+		\State $numRows \gets get\_num\_rows(tile)$
+		\State $lInMat \gets get\_rows(inMat, colIdx, numCols)$
+		\State $lres \gets tile * lInMat$
+		\State $write\_rows(outBuf, lRowIdx, numRows, lres)$
+		\EndFor
+		\EndFor
+		\State write $lOutMat$ to $outMat$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Parallelization}
+When parallelizing sparse matrix multiplication, we take into account
+semi-external memory and the power-law distribution of non-zero entries
+in each row of the sparse matrix.
+
+We partition a sparse matrix horizontally for parallelization (Figure
+\ref{sparse_mat}) to reduce thread synchronization and memory consumption.
+With horizontal partitioning, a thread only needs to read tile rows assigned
+to it from SSDs and processes them independently. Horizontal partitioning
+also significantly reduces memory consumption
+%, which is essential for semi-external memory computation because
+%saved memory can be used to keep more columns in the input dense matrix in
+%memory to significantly reduce I/O from SSDs (as discussed in Section
+%\ref{sec:mem}).
+because it ensures that only the thread assigned tile
+rows need to allocate local memory buffers to store intermediate results
+when going through all tiles in a partition. This is essential to reduce
+remote memory access in a NUMA
+machine. Horizontal partitioning also allows a small matrix index to
+locate non-zero entries in a sparse matrix quickly, because we only need to
+locate tile rows. As such, the matrix index is tiny even for a sparse matrix
+with billions of rows, permitting us to keep the entire matrix index in memory.
+
+We maintain a global task queue for sparse matrix multiplication to achieve
+better load balancing and large I/O writes to SSDs. A task may indicate
+computation on a \textit{super tile} row or a single tile row.
+A thread gets one task at a time from the queue. To achieve good load balancing,
+threads get larger tasks at the beginning and smaller tasks when the computation
+approaches completion. The global task queue maintains a global execution
+order, which is essential
+when the output dense matrix needs to be written to SSDs. When a thread gets
+a task, the computation result from the task may be small. Instead of
+writing the result immediately, we delay writes so that we can merge
+results from multiple threads and write them with a single I/O.
+The global task queue ensures that all threads are processing contiguous
+tile rows to help I/O merging.
+
 \subsection{Runtime CPU optimizations} \label{sec:cpu}
 We perform runtime optimizations to speed up sparse matrix
 dense matrix multiplication. Runtime optimizations further increase
@@ -201,43 +277,6 @@ such overhead can cause substantial performance loss. Therefore, we keep a set
 of memory buffers allocated previously and reuse them for new I/O requests.
 For accessing a sparse matrix, tile rows usually have different sizes, so we resize
 a previously allocated memory buffer if it is too small for a new I/O request.
-
-\subsection{Parallelization}
-When parallelizing sparse matrix multiplication, we take into account
-semi-external memory and the power-law distribution of non-zero entries
-in each row of the sparse matrix.
-
-We partition a sparse matrix horizontally for parallelization (Figure
-\ref{sparse_mat}) to reduce thread synchronization and memory consumption.
-With horizontal partitioning, a thread only needs to read tile rows assigned
-to it from SSDs and processes them independently. Horizontal partitioning
-also significantly reduces memory consumption
-%, which is essential for semi-external memory computation because
-%saved memory can be used to keep more columns in the input dense matrix in
-%memory to significantly reduce I/O from SSDs (as discussed in Section
-%\ref{sec:mem}).
-because it ensures that only the thread assigned tile
-rows need to allocate local memory buffers to store intermediate results
-when going through all tiles in a partition. This is essential to reduce
-remote memory access in a NUMA
-machine. Horizontal partitioning also allows a small matrix index to
-locate non-zero entries in a sparse matrix quickly, because we only need to
-locate tile rows. As such, the matrix index is tiny even for a sparse matrix
-with billions of rows, permitting us to keep the entire matrix index in memory.
-
-We maintain a global task queue for sparse matrix multiplication to achieve
-better load balancing and large I/O writes to SSDs. A task may indicate
-computation on a \textit{super tile} row or a single tile row.
-A thread gets one task at a time from the queue. To achieve good load balancing,
-threads get larger tasks at the beginning and smaller tasks when the computation
-approaches completion. The global task queue maintains a global execution
-order, which is essential
-when the output dense matrix needs to be written to SSDs. When a thread gets
-a task, the computation result from the task may be small. Instead of
-writing the result immediately, we delay writes so that we can merge
-results from multiple threads and write them with a single I/O.
-The global task queue ensures that all threads are processing contiguous
-tile rows to help I/O merging.
 
 \subsection{The impact of the memory size on I/O}
 \label{sec:mem}
@@ -302,7 +341,7 @@ the minimum amount of I/O.
 
 When a machine has insufficient memory to keep the input dense matrix, the SEM
 solution still leads to less I/O than the EM solution when $E < n c k t$ if we
-minimize write to SSDs.
+minimize writes to SSDs.
 In this analysis, we assume a square sparse matrix. The same analysis applies
 to a rectangular sparse matrix as well.
 In this case, the SEM solution scans the sparse matrix multiple times.
