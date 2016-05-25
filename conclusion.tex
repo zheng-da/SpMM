@@ -3,7 +3,7 @@ to large sparse matrices by utilizing commodity SSDs. We perform this operation
 in semi-external memory (SEM), in which
 we keep the sparse matrix on SSDs and the dense matrices in memory. Semi-external
 memory increases scalability in proportion to the ratio of non-zero entries
-to rows or columns in a sparse matrix. It incorporates well with many memory
+to rows or columns in a sparse matrix. It coalesces many memory
 optimizations for sparse matrix multiplication such as cache blocking and NUMA
 organization. We also deploy a set of I/O optimizations for high-speed SSDs
 such as I/O polling and preallocating memory buffers for I/O.
@@ -14,7 +14,7 @@ the Intel MKL and
 Trilinos implementations. Our SEM implementation achieves almost 100\% performance
 of the in-memory implementation on some graphs when the dense matrices can fit
 in memory and have more than four columns. Even when the dense matrix has only
-one column, it achieves at least 65\% performance of its in-memory counterpart
+one column, it achieves at least 65\% of the performance of its in-memory counterpart
 on different graphs. Our SEM sparse matrix multiplication also scales to very
 large graphs with billions of vertices and hundreds of billions of edges.
 
