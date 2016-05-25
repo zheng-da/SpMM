@@ -86,8 +86,8 @@ higher throughput than random I/O \cite{safs}. In addition, random writes are
 harmful to SSDs \cite{sfs} because
 they decrease I/O throughput and shorten the lives of SSDs.
 
-Semi-external memory provides a scalable SpMM solution that incorporates well
-with I/O access to SSDs, parallelization and in-memory optimizations.
+Semi-external memory provides a scalable and efficient SpMM solution that
+incorporates I/O access to SSDs, parallelization and in-memory optimizations.
 It streams the sparse matrix from SSDs for computation, which results in maximal
 I/O throughput from SSDs. It streams the output matrix to SSDs only once if
 the memory is insufficient to store the output matrix, minimizing writes to
