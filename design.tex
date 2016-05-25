@@ -148,36 +148,32 @@ from a single row interval.
 	matrix in a thread.}
 	\label{alg:spmm}
 	\begin{algorithmic}[1]
-		\Procedure{ProcessRowTiles}{TRQueue}
-		\While{$|TRQueue| > 0$}
-		\If {$|TRQueue| > thres$} \State $NumTRs \gets STileSize$
-		\Else \State $NumTRs \gets 1$
+		\Procedure{ProcessRowTiles}{trQueue}
+		\While{$|trQueue| > 0$}
+		\If {$|trQueue| > thres$} \State $numTRs \gets superTileSize$
+		\Else \State $numTRs \gets 1$
 		\EndIf
-		\State $STR \gets get\_tile\_rows(TRQueue, NumTRs)$
-		\State $read\_async(STR, callback=ProcessSTRow)$
+		\State $trs \gets get\_tile\_rows(trQueue, numTRs)$
+		\State $read\_async(trs, callback=ProcessSTRow)$
 		\If {$pendingIOs > maxIOs$} \State wait for I/O
 		\EndIf
 		\EndWhile
 		\EndProcedure
 
-		\Procedure{ProcessSTRow}{STR}
-		\State $STRowIdx \gets get\_start\_row(STR)$
+		\State
+
+		\Procedure{ProcessSTRow}{trs, inMat, outMat}
 		\State $outBuf \gets matrix(0, nrow(tile), ncol(inMat))$
-		\State $STs \gets get\_super\_tiles(STR)$
-		\For{$ST \in STs$}
-		\State $tiles \gets get\_tiles(ST)$
+		\State $sts \gets get\_super\_tiles(trs)$
+		\For{$st \in sts$}
+		\State $tiles \gets get\_tiles(st)$
 		\For{$tile \in tiles$}
-		\State $colIdx \gets get\_start\_col(tile)$
-		\State $numCols \gets get\_num\_cols(tile)$
-		\State $rowIdx \gets get\_start\_row(tile)$
-		\State $lRowIdx \gets rowIdx - STRowIdx$
-		\State $numRows \gets get\_num\_rows(tile)$
-		\State $lInMat \gets get\_rows(inMat, colIdx, numCols)$
-		\State $lres \gets tile * lInMat$
-		\State $write\_rows(outBuf, lRowIdx, numRows, lres)$
+		\State $lInMat \gets$ rows from $inMat$ for $tile$
+		\State $lOutMat \gets$ rows from $outBuf$ for $tile$
+		\State $lOutMat += tile * lInMat$
 		\EndFor
 		\EndFor
-		\State $write\_async(outMat, lOutMat)$
+		\State $write\_async(outMat, outBuf)$
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
@@ -208,27 +204,24 @@ with billions of rows, permitting us to keep the entire matrix index in memory.
 
 For parallel computation, each thread runs \textit{ProcessRowTiles} (in Algorithm
 \ref{alg:spmm}) that gets computation tasks (tile rows) from a global task queue
-\textit{TRQueue}, which results in good load balancing and large I/O writes
-to SSDs. The global task queue is the only data structure that incurs
-concurrent writes from threads. At the beginning, a thread gets larger
-computation tasks (one super tile row at a time); when the computation
-approaches completion, a thread gets one tile row at a time. This design reduces
-concurrent access to the global data structure while achieving good load balancing.
-When a thread gets a computation task, it reads tile rows asynchronously.
-Once I/O is complete, \textit{ProcessSTRow} is invoked to process the tile rows.
-$get\_tile\_rows()$ controls a global execution order, which is essential
-to increase large I/O writes to SSDs. When a thread gets
-a task, the computation result from the task may be small. Instead of
-writing the result immediately, we delay writes so that we can merge
-results from multiple threads and write them with a single I/O.
-The global task queue ensures that all threads are processing contiguous
-tile rows to help I/O merging.
+\textit{trQueue} to achieve load balancing and large I/O writes to SSDs.
+%The global task queue is the only data structure that incurs
+%concurrent writes from threads in our semi-external sparse matrix multiplication.
+At the beginning, a thread gets larger computation tasks (one super tile row
+at a time); as the computation approaches completion, a thread gets smaller
+tasks (one tile row at a time). This design reduces concurrent access to
+the global data structure while realizing good load balancing. When a thread
+gets a computation task, it reads the corresponding tile rows asynchronously,
+and invokes \textit{ProcessSTRow} to process the tile rows once I/O is complete.
+$get\_tile\_rows()$ controls a global execution order to ensure that all threads
+are processing contiguous tile rows so that we can merge writes for computation
+results.
 
-To better utilize the CPU cache, we process tiles of a partition in super tiles.
-The tile size of a sparse
+When processing tile rows, we organize tiles into super tiles to better utilize
+the CPU cache. The tile size of a sparse
 matrix is specified when the sparse matrix image is created and is relatively
 small to handle different numbers of columns in the dense matrices.
-A super tile is composed of tiles from multiple tile rows and its
+A super tile is composed of tiles from multiple contiguous tile rows and its
 size is determined at runtime by three factors: the number of columns
 in the dense matrices, the CPU cache size and the number of threads that
 share the CPU cache. An optimal size for a super tile fills
@@ -236,21 +229,24 @@ the CPU cache with the rows from the dense matrices involved in
 the computation with the super tile.
 
 \textit{ProcessSTRow} in Algorithm \ref{alg:spmm} processes a super tile row.
-$get\_super\_tiles$ splits a super tile row into super tiles and $get\_tiles$
-further splits super tile into tiles. We process all tiles in a super tile
+It splits a super tile row into super tiles with $get\_super\_tiles$ and
+then further splits a super tile into tiles with $get\_tiles$. It processes
+all tiles in a super tile
 before moving to the next super tile, to reuse data in the CPU cache from
-the computation for the previous super tile. For each super tile row, a thread
+the computation on the previous super tile. For each super tile row, a thread
 maintains a local memory buffer $outBuf$ to store the computation results,
-which minimizes remote memory access.
-Once the computation on a super tile row is complete, the local buffer
-contains the complete computation results and is written back to SSDs
-asynchronously.
+which minimizes remote memory access. Once the computation on a super tile row
+is complete, the local buffer contains the complete computation results and
+is written back to SSDs asynchronously. The computation result from a task
+may be small. Instead of writing the result immediately, $write\_async()$ may
+postpone the write and merge it with writes from other threads before writing
+them to SSDs with a single I/O.
 
 In spite of nearly random edge connection in a real-world graph, we explore
 regularity in multiplying a tile with a partition of a row-major dense matrix.
-In this case we multiply a non-zero entry with all elements in a row of
-the input dense matrix and add the results to the corresponding row of
-the output dense matrix.
+In this case we multiply a non-zero entry from a tile with all elements in
+a row of the input dense matrix and add the results to the corresponding row
+of the output dense matrix.
 We perform these operations with vector CPU instructions, such as
 AVX \cite{avx} to enable more efficient memory access and computation.
 The current implementation relies on GCC's auto-vectorization
