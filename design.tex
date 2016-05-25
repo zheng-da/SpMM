@@ -57,7 +57,7 @@ of the dense matrices. To handle dense matrices with different numbers
 of columns, we deploy both static cache blocking and dynamic cache blocking.
 We generate sparse matrices with a relatively small tile size and
 rely on the runtime system
-to optimize for different numbers of columns (Section \ref{sec:cpu}).
+to optimize for different numbers of columns (Section \ref{sec:exec}).
 However, a small tile size potentially increases the storage size of a sparse
 matrix. In semi-external memory, the dense matrices usually have
 a very small number of columns in sparse matrix multiplication. Therefore, we
@@ -146,7 +146,7 @@ from a single row interval.
 \begin{algorithm}
 	\caption{Perform sparse matrix multiplication on tile rows of a sparse
 	matrix in a thread.}
-	\label{alg:exec}
+	\label{alg:spmm}
 	\begin{algorithmic}[1]
 		\Procedure{ProcessRowTiles}{TRQueue}
 		\While{$|TRQueue| > 0$}
@@ -154,7 +154,7 @@ from a single row interval.
 		\Else \State $NumTRs \gets 1$
 		\EndIf
 		\State $STR \gets get\_tile\_rows(TRQueue, NumTRs)$
-		\State $read(STR, callback=ProcessSTRow)$
+		\State $read\_async(STR, callback=ProcessSTRow)$
 		\If {$pendingIOs > maxIOs$} \State wait for I/O
 		\EndIf
 		\EndWhile
@@ -177,17 +177,18 @@ from a single row interval.
 		\State $write\_rows(outBuf, lRowIdx, numRows, lres)$
 		\EndFor
 		\EndFor
-		\State write $lOutMat$ to $outMat$
+		\State $write\_async(outMat, lOutMat)$
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
 
-\subsection{Parallelization}
+\subsection{Parallel Execution} \label{sec:exec}
 When parallelizing sparse matrix multiplication, we take into account
 semi-external memory and the power-law distribution of non-zero entries
 in each row of the sparse matrix.
 
-We partition a sparse matrix horizontally for parallelization (Figure
+We partition a sparse matrix horizontally into tile rows for parallelization
+(Figure
 \ref{sparse_mat}) to reduce thread synchronization and memory consumption.
 With horizontal partitioning, a thread only needs to read tile rows assigned
 to it from SSDs and processes them independently. Horizontal partitioning
@@ -205,41 +206,51 @@ locate non-zero entries in a sparse matrix quickly, because we only need to
 locate tile rows. As such, the matrix index is tiny even for a sparse matrix
 with billions of rows, permitting us to keep the entire matrix index in memory.
 
-We maintain a global task queue for sparse matrix multiplication to achieve
-better load balancing and large I/O writes to SSDs. A task may indicate
-computation on a \textit{super tile} row or a single tile row.
-A thread gets one task at a time from the queue. To achieve good load balancing,
-threads get larger tasks at the beginning and smaller tasks when the computation
-approaches completion. The global task queue maintains a global execution
-order, which is essential
-when the output dense matrix needs to be written to SSDs. When a thread gets
+For parallel computation, each thread runs \textit{ProcessRowTiles} (in Algorithm
+\ref{alg:spmm}) that gets computation tasks (tile rows) from a global task queue
+\textit{TRQueue}, which results in good load balancing and large I/O writes
+to SSDs. The global task queue is the only data structure that incurs
+concurrent writes from threads. At the beginning, a thread gets larger
+computation tasks (one super tile row at a time); when the computation
+approaches completion, a thread gets one tile row at a time. This design reduces
+concurrent access to the global data structure while achieving good load balancing.
+When a thread gets a computation task, it reads tile rows asynchronously.
+Once I/O is complete, \textit{ProcessSTRow} is invoked to process the tile rows.
+$get\_tile\_rows()$ controls a global execution order, which is essential
+to increase large I/O writes to SSDs. When a thread gets
 a task, the computation result from the task may be small. Instead of
 writing the result immediately, we delay writes so that we can merge
 results from multiple threads and write them with a single I/O.
 The global task queue ensures that all threads are processing contiguous
 tile rows to help I/O merging.
 
-\subsection{Runtime CPU optimizations} \label{sec:cpu}
-We perform runtime optimizations to speed up sparse matrix
-dense matrix multiplication. Runtime optimizations further increase
-CPU cache hits and allow more efficient computation and memory access.
-
-To better utilize the CPU cache, we process tiles of a partition in
-\textit{super tile}s (Figure \ref{sparse_mat}). The tile size of a sparse
+To better utilize the CPU cache, we process tiles of a partition in super tiles.
+The tile size of a sparse
 matrix is specified when the sparse matrix image is created and is relatively
 small to handle different numbers of columns in the dense matrices.
-A \textit{super tile} is composed of tiles from multiple tile rows and its
+A super tile is composed of tiles from multiple tile rows and its
 size is determined at runtime by three factors: the number of columns
 in the dense matrices, the CPU cache size and the number of threads that
-share the CPU cache. An optimal size for a \textit{super tile} fills
+share the CPU cache. An optimal size for a super tile fills
 the CPU cache with the rows from the dense matrices involved in
-the computation with the \textit{super tile}.
+the computation with the super tile.
+
+\textit{ProcessSTRow} in Algorithm \ref{alg:spmm} processes a super tile row.
+$get\_super\_tiles$ splits a super tile row into super tiles and $get\_tiles$
+further splits super tile into tiles. We process all tiles in a super tile
+before moving to the next super tile, to reuse data in the CPU cache from
+the computation for the previous super tile. For each super tile row, a thread
+maintains a local memory buffer $outBuf$ to store the computation results,
+which minimizes remote memory access.
+Once the computation on a super tile row is complete, the local buffer
+contains the complete computation results and is written back to SSDs
+asynchronously.
 
 In spite of nearly random edge connection in a real-world graph, we explore
-regularity in SpMM with row-major dense matrices to improve performance.
+regularity in multiplying a tile with a partition of a row-major dense matrix.
 In this case we multiply a non-zero entry with all elements in a row of
-the input dense matrix
-and add the results to the corresponding row of the output dense matrix.
+the input dense matrix and add the results to the corresponding row of
+the output dense matrix.
 We perform these operations with vector CPU instructions, such as
 AVX \cite{avx} to enable more efficient memory access and computation.
 The current implementation relies on GCC's auto-vectorization
