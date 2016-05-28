@@ -71,12 +71,20 @@ size and the adaptibility to different numbers of columns.
 \label{tile_format}
 \end{figure}
 
-To reduce the overall storage size of a sparse matrix, we use a compact format
-to store non-zero entries in a tile. In very sparse matrices many rows in a tile
+To reduce the overall storage size of a sparse matrix, we need a very compact format
+to store non-zero entries in a tile. A compact format is critical to performance
+because in semi-external memory SpMM a sparse matrix is read from SSDs and SSDs
+may be the bottleneck. In very sparse matrices many rows in a tile
 do not have any non-zero entries. The CSR or CSC format wastes space because
-they require an entry for each row/column in the row/column index. We use
-a very compact format to store non-zero entries and refer to this format
-as SCSR (Super Compressed Row Storage) (Figure \ref{tile_format}).
+they require an entry for each row/column in the row/column index. Doubly
+compressed sparse column (DCSC) \cite{Buluc08} is proposed to avoid this problem
+and is compact for hypersparse matrices, especially for submatrices of
+a sparse matrix. However, even DCSC wastes space because it requires space
+for pointers to columns and \dz{fails to reference to non-zero values with small
+integers}.
+
+We use a very compact format to store non-zero entries and refer to this
+format as SCSR (Super Compressed Row Storage) (Figure \ref{tile_format}).
 This format keeps data only for rows with non-zero entries in a tile and
 maintains a row header for each non-empty row. A row header has an identifier
 to indicate the row number, followed by column indices. 
@@ -87,25 +95,23 @@ of a row. Owing to the small size of a tile, we use two bytes to store a row
 number and a column index entry, which further reduces the storage size. As such,
 each non-zero entry requires at most four bytes to indicate its location in
 the matrix. Because the most significant bit is used to indicate the beginning
-of a row, this format allows a maximum tile size of $32K \times 32K$.
+of a row, this format allows a maximum tile size of $32K \times 32K$. SCSR is
+even more compact than DCSC \cite{Buluc08}. In the best case (each non-zero
+entry is stored in a separate row/column), SCSR requires only 40\% of the space
+than DCSC for binary sparse matrices. Figure \ref{fig:storage} shows that
+in practice SCSR uses 45\%-70\% of the storage size used by DCSC for large
+real-world graphs (Table \ref{graphs}).
 
 \begin{figure}
 	\begin{center}
 		\footnotesize
 		\include{SpMM_figs/storage}
-		\caption{The ratio of the storage size used by SCSR and DCSR format
-		for real-world graphs.}
+		\caption{The ratio of the storage size required by SCSR and DCSR
+			\cite{Buluc08} format for real-world graphs. SCSR is much more
+		compact than DCSR for graphs.}
 		\label{fig:storage}
 	\end{center}
 \end{figure}
-
-SCSR is even more compact than doubly compressed sparse column (DCSC)
-\cite{Buluc08}. In the best case (each non-zero entry is stored in a separate
-row/column), SCSR requires only half of the space to store locations of
-non-zero entries than DCSC. Figure \ref{fig:storage} shows that SCSR requires
-only 60\%-70\% of the storage size for many real-world graphs. A compact format
-is critical to performance because a sparse matrix is read from SSDs in
-semi-external memory and SSDs may be the bottleneck in the operation.
 
 Inside each cache tile of the SCSR, we use the coordinate format (COO) for
 the rows that have only a single non-zero entry. For the adjacency matrices of
