@@ -71,9 +71,9 @@ size and the adaptibility to different numbers of columns.
 \label{tile_format}
 \end{figure}
 
-To reduce the overall storage size of a sparse matrix, we need a very compact format
-to store non-zero entries in a tile. A compact format is critical to performance
-because in semi-external memory SpMM a sparse matrix is read from SSDs and SSDs
+We need a very compact format to store non-zero entries in a tile to reduce
+the number of bits in a sparse matrix read from SSDs. A compact format is
+performance critical because in semi-external memory SpMM SSDs
 may be the bottleneck. In very sparse matrices many rows in a tile
 do not have any non-zero entries. The CSR or CSC format wastes space because
 they require an entry for each row/column in the row/column index. Doubly
@@ -106,9 +106,9 @@ real-world graphs (Table \ref{graphs}).
 	\begin{center}
 		\footnotesize
 		\include{SpMM_figs/storage}
-		\caption{The ratio of the storage size required by SCSR and DCSR
+		\caption{The ratio of the storage size required by SCSR and DCSC
 			\cite{Buluc08} format for real-world graphs. SCSR is much more
-		compact than DCSR for graphs.}
+		compact than DCSC for graphs.}
 		\label{fig:storage}
 	\end{center}
 \end{figure}
