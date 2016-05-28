@@ -264,13 +264,11 @@ is less significant and remains the same for different memory sizes.
 
 \subsection{Optimizations on sparse matrix multiplication}
 Accelerating SEM-SpMM requires both computation and I/O optimizations.
-%Due to the limit of space, we only illustrate the effectiveness of computation
-%optimizations.
-We first deploy computation optimizations for in-memory sparse matrix
-multiplication and then
-deploy I/O optimizations for SEM-SpMM with all computation optimizations.
+We first evaluate the effectiveness of computation optimizations by deploying
+them on IM-SpMM. We further show the effectiveness of I/O optimizations by
+deploying them on SEM-SpMM with all computation optimizations.
 
-Here we illustrate the most significant optimizations from Section
+Here we illustrate the most significant computation optimizations from Section
 \ref{sec:spmm}. We start with an in-memory implementation that
 performs sparse matrix multiplication on a sparse matrix in the CSR format
 and apply the optimizations incrementally in the following order:
@@ -316,41 +314,41 @@ sparse matrix vector multiplication and sparse matrix dense matrix multiplicatio
 	\end{center}
 \end{figure}
 
-%We implement the base version of SEM-SpMM based on the IM-SpMM implementation
-%above. In this implementation, we write the output dense matrix to SSDs.
-%SpMM on a dense matrix with a few columns is usually CPU-bound. As such,
-%we illustrate the I/O optimizations on the base SEM-SpMV in the following order to show
-%their effectiveness:
-%\begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
-%	\item use a compact sparse matrix format to reduce the number of bits read
-%		from SSDs,
-%	\item reduce memory allocation overhead with \textit{mmap()} by maintaining
-%		a per-thread buffer pool to allocate memory for I/O (\textit{buf pool}),
-%	\item reduce the number of thread context switch for I/O access with I/O
-%		polling (\textit{polling}),
-%	\item order the portions of the output dense matrix globally and stream them
-%		to SSDs with large I/O (\textit{global output}).
-%\end{itemize}
+We evaluate I/O optimizations on SEM-SpMV against a base implementation that
+has all of the computation optimizations and use doubly compressed sparse row
+format (DCSR) to store tiles of a sparse matrix. We illustrate their
+effectiveness on the Friendster graph and the Page graph. The first one
+represents a graph that is not well clustered; the other one is clustered with
+domain names. We apply the I/O optimizations in the following order:
+\begin{itemize} \itemsep1pt \parskip0pt \parsep0pt
+	\item use SCSR to reduce the number of bits read from SSDs (SCSR),
+	\item reduce memory allocation overhead for I/O with per-thread buffer
+		pools (\textit{buf-pool}),
+	\item reduce the number of thread context switch for I/O access with I/O
+		polling (\textit{IO-poll}),
+\end{itemize}
 
-%\begin{figure}
-%	\begin{center}
-%		\footnotesize
-%		\include{SpMM_opts_io}
-%		\caption{The speedup of I/O optimizations for SpMV on real-world graphs.}
-%		\label{perf:spmm_opt_io}
-%	\end{center}
-%\end{figure}
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\include{SpMM_figs/io_opts}
+		\caption{The speedup of I/O optimizations for SpMV on the Friendster
+		graph and the Page graph.}
+		\label{perf:spmm_opt_io}
+	\end{center}
+\end{figure}
 
-%SEM-SpMV on some of the graphs requires substantial I/O throughput and
-%any improvement on I/O leads to overall performance boost (Figure
-%\ref{perf:spmm_opt_io}). The Page graph is relatively well clustered, so
-%SEM-SpMV on this graph is less computationally intensive than other graphs
-%and requires higher I/O throughput.
-%Using a compact sparse matrix format accelerates the information retrieval
-%of the sparse matrix and gives us the best performance boost among all
-%optimizations. Reducing the overhead of memory allocation with \textit{mmap()}
-%gives significant performance boost. Reducing the number of thread context
-%switches with polling achieve substantial performance improvement. 
+The I/O optimizations lead to substantial speedup over the base implementations,
+but behave very differently on these two graphs (Figure \ref{perf:spmm_opt_io}).
+On an unclustered graph, SCSR results in much more compact storage format
+than DCSR (Figure \ref{fig:storage}) and thus achieves significant speedup.
+The Page graph, on the other hand, is well clustered and DCSR already
+achieves a small storage size. SCSR further reduces storage size, but is less
+significant. SpMV on the Page graph has less random memory access and is
+I/O-bound even on a large SSD array. Therefore, \textit{Buf-pool} and
+\textit{IO-poll} are very effective. In contrast, SEM-SpMV on the Friendster
+graph with SCSR already achieves almost 80\% of IM-SpMV and thus, further
+I/O optimizations have less noticeable speedup.
 
 \subsection{Performance of the applications}
 
