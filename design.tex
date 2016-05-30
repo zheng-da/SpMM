@@ -36,7 +36,7 @@ To support efficient sparse matrix multiplication on graphs in semi-external
 memory, we need to use an alternative format for sparse matrices to increase
 CPU cache hits and reduce I/O from SSDs. Compressed row
 storage (CSR) or compressed column storage (CSC) format are not designed for
-graphs because these formats incur many CPU cache misses. They also require
+graphs and incur many CPU cache misses. They also require
 a relatively large storage size. For a sparse matrix with billions of non-zero
 entries, we have to use eight bytes to store row and column indices.
 
@@ -78,10 +78,10 @@ may be the bottleneck. In very sparse matrices many rows in a tile
 do not have any non-zero entries. The CSR or CSC format wastes space because
 they require an entry for each row/column in the row/column index. Doubly
 compressed sparse column (DCSC) \cite{Buluc08} is proposed to avoid this problem
-and is compact for hypersparse matrices, especially for submatrices of
-a sparse matrix. However, even DCSC wastes space because it requires space
-for pointers to columns and \dz{fails to reference to non-zero values with small
-integers}.
+and is compact for hypersparse matrices such as submatrices of
+a sparse matrix. However, even DCSC wastes space because it requires to store
+pointers to columns and \dz{fails to reference to non-zero values with small
+integers (e.g., two-byte integers)}.
 
 We use a very compact format to store non-zero entries and refer to this
 format as SCSR (Super Compressed Row Storage) (Figure \ref{tile_format}).
@@ -94,13 +94,18 @@ distinguish a row identifier from a column index entry and determine the end
 of a row. Owing to the small size of a tile, we use two bytes to store a row
 number and a column index entry, which further reduces the storage size. As such,
 each non-zero entry requires at most four bytes to indicate its location in
-the matrix. Because the most significant bit is used to indicate the beginning
-of a row, this format allows a maximum tile size of $32K \times 32K$. SCSR is
+a matrix. Because the most significant bit is used to indicate the beginning
+of a row, this format allows a maximum tile size of $32K \times 32K$.
+
+SCSR is
 even more compact than DCSC \cite{Buluc08}. In the best case (each non-zero
 entry is stored in a separate row/column), SCSR requires only 40\% of the space
-than DCSC for binary sparse matrices. Figure \ref{fig:storage} shows that
+than DCSC for binary sparse matrices. In the worst case (all non-zero entries
+are stored in a single row/column), SCSR uses the same space as DCSC.
+Figure \ref{fig:storage} shows that
 in practice SCSR uses 45\%-70\% of the storage size used by DCSC for large
-real-world graphs (Table \ref{graphs}).
+real-world graphs (Table \ref{graphs}). SCSR saves more space in a sparse matrix
+where non-zero entries are more randomly distributed.
 
 \begin{figure}
 	\begin{center}
@@ -172,7 +177,7 @@ from a single row interval.
 	matrix in a thread.}
 	\label{alg:spmm}
 	\begin{algorithmic}[1]
-		\Procedure{ProcessRowTiles}{trQueue}
+		\Procedure{ProcessTileRows}{trQueue}
 		\While{$|trQueue| > 0$}
 		\If {$|trQueue| > thres$} \State $numTRs \gets superTileSize$
 		\Else \State $numTRs \gets 1$
@@ -205,33 +210,33 @@ from a single row interval.
 \subsection{Parallel Execution} \label{sec:exec}
 When parallelizing sparse matrix multiplication, we take into account
 semi-external memory and the power-law distribution of non-zero entries
-in each row of the sparse matrix.
+in each row of a sparse matrix.
 
-We partition a sparse matrix horizontally into tile rows for parallelization
-(Figure
-\ref{sparse_mat}) to reduce thread synchronization and memory consumption.
-With horizontal partitioning, a thread only needs to read tile rows assigned
-to it from SSDs and processes them independently. Horizontal partitioning
-also significantly reduces memory consumption
-%, which is essential for semi-external memory computation because
-%saved memory can be used to keep more columns in the input dense matrix in
-%memory to significantly reduce I/O from SSDs (as discussed in Section
-%\ref{sec:mem}).
-because it ensures that only the thread assigned tile
-rows need to allocate local memory buffers to store intermediate results
-when going through all tiles in a partition. This is essential to reduce
-remote memory access in a NUMA
-machine. Horizontal partitioning also allows a small matrix index to
-locate non-zero entries in a sparse matrix quickly, because we only need to
-locate tile rows. As such, the matrix index is tiny even for a sparse matrix
-with billions of rows, permitting us to keep the entire matrix index in memory.
+Semi-external memory favors horizontal partitioning on a sparse matrix
+for parallelization because this partitioning
+scheme minimizes writes to SSDs and remote memory with small memory
+consumption. Horizontal partitioning requires only the thread assigned tile
+rows to allocate local memory buffers for intermediate results when the thread
+goes through all tiles in the tile rows. All intermediate computation
+results on tiles are merged into the local memory buffers, which results in
+writing the output matrix at most once to SSDs and no remote memory writes.
+This is essential for semi-external memory computation because
+saved memory can be used to keep more columns in the input dense matrix in
+memory to reduce I/O from SSDs (as discussed in Section \ref{sec:mem}).
+In contrast, both vertical partitioning and 2D partitioning requires each
+thread to maintain a local memory buffer for the same tile rows in order
+to reduce writes to SSDs and remote memory.
+%Horizontal partitioning also allows a small matrix index to
+%locate non-zero entries in a sparse matrix quickly, because we only need to
+%locate tile rows. As such, the matrix index is tiny even for a sparse matrix
+%with billions of rows, permitting us to keep the entire matrix index in memory.
 
-For parallel computation, each thread runs \textit{ProcessRowTiles} (in Algorithm
+For parallel computation, each thread runs \textit{ProcessTileRows} (in Algorithm
 \ref{alg:spmm}) that gets computation tasks (tile rows) from a global task queue
 \textit{trQueue} to achieve load balancing and large I/O writes to SSDs.
 %The global task queue is the only data structure that incurs
 %concurrent writes from threads in our semi-external sparse matrix multiplication.
-At the beginning, a thread gets larger computation tasks (one super tile row
+At the beginning, a thread gets larger computation tasks (several tile rows
 at a time); as the computation approaches completion, a thread gets smaller
 tasks (one tile row at a time). This design reduces concurrent access to
 the global data structure while realizing good load balancing. When a thread
@@ -245,22 +250,22 @@ results.
 When processing tile rows, we organize tiles into super tiles to better utilize
 the CPU cache. The tile size of a sparse
 matrix is specified when the sparse matrix image is created and is relatively
-small to handle different numbers of columns in the dense matrices.
-A super tile is composed of tiles from multiple contiguous tile rows and its
-size is determined at runtime by three factors: the number of columns
+small to handle different numbers of columns in the dense matrices. A super tile
+is composed of tiles from multiple contiguous tile rows (Figure \ref{sparse_mat})
+and its size is determined at runtime by three factors: the number of columns
 in the dense matrices, the CPU cache size and the number of threads that
 share the CPU cache. An optimal size for a super tile fills
 the CPU cache with the rows from the dense matrices involved in
 the computation with the super tile.
 
-\textit{ProcessSTRow} in Algorithm \ref{alg:spmm} processes a super tile row.
-It splits a super tile row into super tiles with $get\_super\_tiles$ and
-then further into tiles with $get\_tiles$. It processes all tiles in
-a super tile before moving to the next one, to reuse data in the CPU cache from
-the computation on the previous super tile. For each super tile row, a thread
-maintains a local memory buffer $outBuf$ to store the computation results,
-which minimizes remote memory access. Once the computation on a super tile row
-is complete, the local buffer contains complete results and is written back to
+\textit{ProcessSTRow} in Algorithm \ref{alg:spmm} processes tile rows.
+It splits the input tile rows into super tiles with $get\_super\_tiles$ and
+then further into tiles with $get\_tiles$. It processes all tiles in a super
+tile before moving to the next one. As such, the computation on a tile reuses
+data in the CPU cache from the computation on the previous tile. We maintain
+a local memory buffer $outBuf$ to store the computation results,
+which minimizes remote memory access. Once the computation in \textit{ProcessSTRow}
+is complete, $outBuf$ contains complete results and is written back to
 SSDs asynchronously with $write\_async()$. The computation result from a task
 may be small. Instead of writing the result immediately, $write\_async()$ may
 postpone the write and merge it with ones from other threads so that we can
@@ -278,10 +283,10 @@ to translate the C code to vector CPU instructions by predefining the matrix
 width in the code.
 
 \subsection{I/O optimizations}
-Semi-external memory sparse matrix multiplication results in sequential I/O.
-Streaming a sparse matrix from SSDs results in no cache hits in the Linux
-page cache when the sparse matrix size is larger than main memory. As such,
-we access a sparse matrix on SSDs with direct I/O.
+Semi-external memory sparse matrix multiplication streams a sparse matrix from
+SSDs, which results in sequential I/O. This I/O access pattern does not generate
+any cache hits in the Linux page cache when the sparse matrix size is larger
+than main memory. As such, we access a sparse matrix on SSDs with direct I/O.
 For accessing data in fast SSDs sequentially, the overhead of operating systems
 such as thread context switch and memory allocation becomes noticeable.
 We tackle these obstacles to maximize I/O throughput.
@@ -300,12 +305,10 @@ being switched out after the thread completes all computation available to it.
 When accessing a sparse matrix or a dense matrix from SSDs, we maintain a set of
 memory buffers for I/O access to reduce the overhead of memory allocation.
 We use large I/O to access matrices on SSDs to increase I/O throughput.
-The operating system usually allocates a large memory buffer with \textit{mmap()}
-and populates the buffer with physical pages when it is used. It is
-computationally expensive to populate
-large memory buffers frequently. When accessing high-throughput I/O devices,
-such overhead can cause substantial performance loss. Therefore, we keep a set
-of memory buffers allocated previously and reuse them for new I/O requests.
+Large memory allocation is expensive because the operating
+system usually allocates a large memory buffer with \textit{mmap()} and
+populates the buffer with physical pages when it is used. Therefore, we keep
+a set of memory buffers allocated previously and reuse them for new I/O requests.
 For accessing a sparse matrix, tile rows usually have different sizes, so we resize
 a previously allocated memory buffer if it is too small for a new I/O request.
 
