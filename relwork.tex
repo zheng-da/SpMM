@@ -5,9 +5,12 @@ and Boman et al.~\cite{Boman2013} optimize distributed SpMV for large
 scale-free graphs with 2D partitioning to reduce communication between
 machines. In contrast, Sparse matrix dense matrix multiplication (SpMM) receives
 less attention from the high-performance computing community. Even though
-SpMM can be implemented with SpMV, SpMV fails to explore data locality in SpMM.
-Aktulga et al.~\cite{Aktulga14} optimizes SpMM with cache blocking. We advance
-SpMM with a focus on optimizations for semi-external memory.
+SpMM can be implemented with SpMV, SpMV fails to explore data locality in
+SpMM. Aktulga et al.~\cite{Aktulga14} optimizes SpMM with cache blocking.
+Koanantakool et al.~\cite{Koanantakool16} experiments different parallel
+algorithms for sparse matrix dense matrix multiplication and analyzes
+their communication cost in distributed memory.
+We advance SpMM with a focus on optimizations for semi-external memory.
 
 Compressed row storage (CSR) or compressed column storage (CSC) format are commonly
 used sparse matrix formats in many numeric libraries such as Intel MKL \cite{mkl}
