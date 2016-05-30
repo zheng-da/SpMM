@@ -193,9 +193,9 @@ by a large margin, especially on real-world graphs (Figure \ref{perf:ec2}).
 When Tpetra runs on 8 EC2 instances, it has 2.5 times as many CPU cores as
 our SEM-SpMM on the NUMA machine. Trilinos Tpetra is not able to run SpMV
 on RMAT-160 on two EC2 nodes. Owing to the compact format for a sparse matrix,
-our IM-SpMM is able to run on all of the graphs in a single EC2 instance.
-Even though an EC2 instance has only 16 physical CPU cores, one third of
-the CPU cores on our NUMA, our IM-SpMM on an EC2 instance achieves around
+our IM-SpMM can run on all of the graphs in a single instance of the same
+type. Even though an EC2 instance has only 16 physical CPU cores, one third of
+the CPU cores on our NUMA machine, our IM-SpMM on an EC2 instance achieves around
 half of the performance of our IM-SpMM on our NUMA machine. In contrast,
 Trilinos Tpetra uses many more computation resources and still barely reaches
 the same performance. One of the main reasons that our SEM-SpMM performs much
@@ -338,17 +338,17 @@ domain names. We apply the I/O optimizations in the following order:
 	\end{center}
 \end{figure}
 
-The I/O optimizations lead to substantial speedup over the base implementations,
+The I/O optimizations lead to substantial speedup over the base implementation,
 but behave very differently on these two graphs (Figure \ref{perf:spmm_opt_io}).
-On an unclustered graph, SCSR results in much more compact storage format
-than DCSR (Figure \ref{fig:storage}) and thus achieves significant speedup.
-The Page graph, on the other hand, is well clustered and DCSR already
-achieves a small storage size. SCSR further reduces storage size, but is less
-significant. SpMV on the Page graph has less random memory access and is
-I/O-bound even on a large SSD array. Therefore, \textit{Buf-pool} and
-\textit{IO-poll} are very effective. In contrast, SEM-SpMV on the Friendster
-graph with SCSR already achieves almost 80\% of IM-SpMV and thus, further
-I/O optimizations have less noticeable speedup.
+On the unclustered graph (Friendster), SCSR requires a much smaller storage size
+than DCSR (Figure \ref{fig:storage}) and thus achieves significant
+speedup. The Page graph, on the other hand, is well clustered and DCSR already
+achieves a small storage size. SCSR further reduces the storage size, but is
+less significant. SpMV on the Page graph has less random memory access and is
+I/O-bound even on a large SSD array. \textit{Buf-pool} and \textit{IO-poll}
+increases I/O throughput and, thus, improves performance. In contrast,
+SEM-SpMV with SCSR on the Friendster graph already achieves almost 80\% of
+IM-SpMV and, thus, further I/O optimizations have less noticeable speedup.
 
 \subsection{Performance of the applications}
 
