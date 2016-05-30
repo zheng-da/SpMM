@@ -101,11 +101,10 @@ SCSR is
 even more compact than DCSC \cite{Buluc08}. In the best case (each non-zero
 entry is stored in a separate row/column), SCSR requires only 40\% of the space
 than DCSC for binary sparse matrices. In the worst case (all non-zero entries
-are stored in a single row/column), SCSR uses the same space as DCSC.
-Figure \ref{fig:storage} shows that
-in practice SCSR uses 45\%-70\% of the storage size used by DCSC for large
-real-world graphs (Table \ref{graphs}). SCSR saves more space in a sparse matrix
-where non-zero entries are more randomly distributed.
+are stored in a single row/column), SCSR uses the same space as DCSC. Figure
+\ref{fig:storage} shows that SCSR uses 45\%-70\% of the storage size used by
+DCSC for large real-world graphs (Table \ref{graphs}). SCSR saves more space
+in a sparse matrix where non-zero entries are more randomly distributed.
 
 \begin{figure}
 	\begin{center}
