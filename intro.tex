@@ -72,7 +72,7 @@ result in higher I/O access in semi-external memory. We optimize SpMM directly
 to overcome these problems. Given fast SSDs, we demonstrate that the SEM
 solution uses the resources of a multi-core machine well and
 achieves performance comparable to state-of-the-art in-memory implementations
-for sparse matrix multiplication while increasing the scalability in proportion
+while increasing the scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
 
 % Why is it new/different/special?
@@ -91,22 +91,22 @@ incorporates I/O access to SSDs, parallelization and in-memory optimizations.
 It streams the sparse matrix from SSDs for computation, which results in maximal
 I/O throughput from SSDs. It streams the output matrix to SSDs only once if
 the memory is insufficient to store the output matrix, minimizing writes to
-SSDs and maximizing I/O throughput.
-We compress the sparse matrix to further accelerate retrieving the sparse
-matrix from SSDs. In the parallel setting, each thread streams its own partitions
-of the sparse matrix to memory and performs computation.
+SSDs and maximizing I/O throughput. We design a very compact sparse matrix
+format to further accelerates retrieving a sparse
+matrix from SSDs. In the parallel setting, each thread streams its own
+partitions of the sparse matrix to memory and performs computation.
 We deploy multiple in-memory optimizations specifically designed for power-law
-graphs. For example, we assign partitions of the sparse matrix dynamically to
+graphs. For example, we assign partitions of a sparse matrix dynamically to
 threads for load balancing, deploy cache blocking to increase CPU cache hits,
 distribute the dense matrix to NUMA nodes to fully utilize the memory
-bandwidth of a NUMA machine, and organize the dense matrix in the row-major order
-to explore data locality in SpMM.
+bandwidth of a NUMA machine, and organize the dense matrix in the row-major
+order to explore data locality in SpMM.
 
 Our semi-external memory solution adapts to machines with different memory
 capacities. When the dense matrix is larger than memory, we split the dense
 matrix vertically into multiple partitions so that each partition can fit in
 memory. As such, the minimum memory requirement of our solution is $O(n)$,
-where $n$ is the number of rows in the dense matrix. By keeping more columns
+where $n$ is the number of rows in the input dense matrix. By keeping more columns
 in the dense matrix in memory, we reduce I/O from SSDs in SpMM. When the number
 of columns in a dense matrix increases, SEM SpMM becomes CPU bound, instead of
 I/O bound on fast SSDs.
