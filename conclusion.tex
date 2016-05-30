@@ -1,16 +1,15 @@
-We present an alternative solution for scaling sparse matrix multiplication
-to large sparse matrices by utilizing commodity SSDs. We perform this operation
-in semi-external memory (SEM), in which
+We present an alternative solution for scaling sparse matrix dense matrix
+multiplication (SpMM) to large sparse matrices by utilizing commodity SSDs.
+We perform this operation in semi-external memory (SEM), in which
 we keep the sparse matrix on SSDs and the dense matrices in memory. Semi-external
 memory increases scalability in proportion to the ratio of non-zero entries
-to rows or columns in a sparse matrix. It coalesces many memory
-optimizations for sparse matrix multiplication such as cache blocking and NUMA
-organization. We also deploy a set of I/O optimizations for high-speed SSDs
-such as I/O polling and preallocating memory buffers for I/O.
+to rows or columns in a sparse matrix. In a large parallel machine with
+high-speed SSDs, SEM SpMM requires both memory optimizations, such as cache
+blocking and NUMA organization, and I/O optimizations, such as I/O polling and
+memory buffer pools, to realize good performance.
 
-Our SEM sparse matrix multiplication achieves performance comparable
-to our highly optimized in-memory implementation while significantly outperforming
-the Intel MKL and
+Our SEM SpMM achieves performance comparable to our highly optimized in-memory
+implementation while significantly outperforming the Intel MKL and
 Trilinos implementations. Our SEM implementation achieves almost 100\% performance
 of the in-memory implementation on some graphs when the dense matrices can fit
 in memory and have more than four columns. Even when the dense matrix has only
@@ -29,7 +28,7 @@ We apply our sparse matrix multiplication to three important applications:
 PageRank, eigendecomposition and non-negative matrix factorization. We demonstrate
 how additional memory should be used in semi-external memory in each application.
 We further demonstrate that each of our implementations significantly outperform
-the state of art and scale to very large graphs.
+state of the art and scale to very large graphs.
 
 Through thorough evaluation, we demonstrate that semi-external memory
 coupled with fast SSDs achieves performance very close to highly optimized
