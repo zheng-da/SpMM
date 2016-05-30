@@ -492,11 +492,10 @@
 % in the abstract or keywords.
 \IEEEtitleabstractindextext{%
 \begin{abstract}
-Owing to random memory access patterns, sparse matrix multiplication,
-especially on the sparse matrices encoding graphs, is traditionally performed
-in memory and scales to large matrices using the distributed memory of
-multiple nodes.
-In contrast, we scale sparse matrix multiplication by utilizing commodity
+Owing to random memory access patterns, sparse matrix multiplication is
+traditionally performed in memory and scales to large matrices using
+the distributed memory of multiple nodes. In contrast, we scale this operation
+by utilizing commodity
 SSDs. We implement sparse matrix dense matrix multiplication (SpMM) in
 a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
 and dense matrices in memory. Our SEM SpMM incorporates many in-memory
