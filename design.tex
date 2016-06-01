@@ -200,7 +200,8 @@ to reduce writes to SSDs and remote memory.
 	matrix in a thread.}
 	\label{alg:spmm}
 	\begin{algorithmic}[1]
-		\Procedure{ProcessTileRows}{trQueue}
+		\Procedure{ProcessTileRows}{$trQueue$}
+		\State {$trQueue$:} \Comment{a queue of tile rows shared by all threads}
 		\While{$|trQueue| > 0$}
 		\If {$|trQueue| > \#threads$}
 		\State $tr \gets get\_super\_tile\_row(trQueue)$
@@ -214,8 +215,10 @@ to reduce writes to SSDs and remote memory.
 
 		\State
 
-		\Procedure{ProcessSTRow}{trs, inMat, outMat}
-		\State $outBuf \gets matrix(0, nrow(tile), ncol(inMat))$
+		\Procedure{ProcessSTRow}{$trs$, $inMat$}
+		\State {$trs$:} \Comment{$s \times n$ submatrix in the sparse matrix}
+		\State {$inMat$:} \Comment{$n \times p$ input dense matrix of SpMM}
+		\State $outBuf \gets matrix(0, s, p)$
 		\State $sts \gets get\_super\_tiles(trs)$
 		\For{$st \in sts$}
 		\State $tiles \gets get\_tiles(st)$
@@ -225,7 +228,7 @@ to reduce writes to SSDs and remote memory.
 		\State $lOutMat += tile * lInMat$
 		\EndFor
 		\EndFor
-		\State $write\_async(outMat, outBuf)$
+		\State $write\_async(outBuf)$
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
