@@ -33,7 +33,7 @@ in semi-external memory as before and stream the output matrix to SSDs.
 
 \subsection{Sparse matrix format}
 To support efficient sparse matrix multiplication on graphs in semi-external
-memory, we need to use an alternative format for sparse matrices to increase
+memory, we use an alternative format for sparse matrices to increase
 CPU cache hits and reduce I/O from SSDs. Compressed row
 storage (CSR) or compressed column storage (CSC) format are not designed for
 graphs and incur many CPU cache misses. They also require
@@ -72,14 +72,14 @@ size and the adaptibility to different numbers of columns.
 \end{figure}
 
 We need a very compact format to store non-zero entries in a tile to reduce
-the number of bits in a sparse matrix read from SSDs. A compact format is
+the number of bytes in a sparse matrix read from SSDs. A compact format is
 performance critical because in semi-external memory SpMM SSDs
 may be the bottleneck. In very sparse matrices many rows in a tile
-do not have any non-zero entries. The CSR or CSC format wastes space because
+do not have any non-zero entries. The CSR or CSC formats waste space because
 they require an entry for each row/column in the row/column index. Doubly
 compressed sparse column (DCSC) \cite{Buluc08} is proposed to avoid this problem
-and is compact for hypersparse matrices such as submatrices of
-a sparse matrix. However, even DCSC wastes space because it requires to store
+and is compact for hypersparse matrices such as submatrices of a sparse matrix.
+However, even DCSC wastes space because it requires the storage of
 pointers to columns and \dz{fails to reference to non-zero values with small
 integers (e.g., two-byte integers)}.
 
@@ -138,10 +138,9 @@ of SCSR (Figure \ref{tile_format}).
 %in memory during sparse matrix multiplication.
 
 \subsection{Dense matrices}
-In many applications, the dense matrices in SpMM are
-tall-and-skinny matrices with millions or even billions of rows but only a small
-number of columns. The number of columns is determined by applications.
-In semi-external memory,
+In many applications, the dense matrices in SpMM are tall and skinny with
+millions or even billions of rows but only a small number of columns.
+The number of columns is determined by applications. In semi-external memory,
 we keep the input dense matrix in memory, so its size governs memory consumption
 of sparse matrix multiplication. To increase data locality in SpMM, the elements
 in the dense matrices are stored in row-major order.
@@ -186,7 +185,7 @@ and remote memory with small memory consumption. Horizontal partitioning
 requires only one thread to allocate local memory buffers for computation on
 a tile row. All intermediate computation results on tiles are merged into
 the local memory buffers. As such, we write the output matrix at most once
-to SSDs and there is no remote memory writes.
+to SSDs and there are no remote memory writes.
 In contrast, both vertical partitioning and 2D partitioning require each
 thread to maintain a local memory buffer for the same tile rows in order
 to reduce writes to SSDs and remote memory.
@@ -247,8 +246,8 @@ once I/O is complete. $get\_tile\_row()$ and $get\_super\_tile\_row()$ control
 a global execution order that ensures that all threads are processing contiguous
 tile rows. Such an execution order helps to merge writes for computation results.
 
-When processing tile rows, we organize tiles into super tiles to better utilize
-the CPU cache. The tile size of a sparse
+When processing tile rows, we organize tiles into super tiles with
+$get\_super\_tiles$ to better utilize the CPU cache. The tile size of a sparse
 matrix is specified when the sparse matrix image is created and is relatively
 small to handle different numbers of columns in the dense matrices. A super tile
 is composed of tiles from multiple contiguous tile rows (Figure \ref{sparse_mat})
