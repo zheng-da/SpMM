@@ -203,11 +203,11 @@ to reduce writes to SSDs and remote memory.
 		\Procedure{ProcessTileRows}{trQueue}
 		\While{$|trQueue| > 0$}
 		\If {$|trQueue| > \#threads$}
-		\State $trs \gets get\_super\_tile\_row(trQueue)$
-		\Else \State $trs \gets get\_tile\_row(trQueue)$
+		\State $tr \gets get\_super\_tile\_row(trQueue)$
+		\Else \State $tr \gets get\_tile\_row(trQueue)$
 		\EndIf
-		\State $read\_async(trs, callback=ProcessSTRow)$
-		\If {$pendingIOs > 4$} \State wait for I/O
+		\State $read\_async(tr, callback=ProcessSTRow)$
+		\If {more than 4 pending I/Os} \State wait for I/O
 		\EndIf
 		\EndWhile
 		\EndProcedure
