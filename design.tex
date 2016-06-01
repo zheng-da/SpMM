@@ -171,6 +171,30 @@ from a single row interval.
 %\label{dense_mat}
 %\end{figure}
 
+\subsection{Parallel Execution} \label{sec:exec}
+This section describes parallel execution of sparse matrix multiplication
+in semi-external memory. Memory is precious resource in this computation model
+because memory should be used to keep more columns in the input dense matrix
+in memory to reduce I/O from SSDs (as discussed in Section \ref{sec:mem}).
+As such, we deploy only computation optimizations with a small memory footprint.
+%and the power-law distribution of non-zero entries in each row of a sparse
+%matrix.
+
+Semi-external memory favors horizontal partitioning on a sparse matrix
+for parallelization because this partitioning scheme minimizes writes to SSDs
+and remote memory with small memory consumption. Horizontal partitioning
+requires only one thread to allocate local memory buffers for computation on
+a tile row. All intermediate computation results on tiles are merged into
+the local memory buffers. As such, we write the output matrix at most once
+to SSDs and there is no remote memory writes.
+In contrast, both vertical partitioning and 2D partitioning require each
+thread to maintain a local memory buffer for the same tile rows in order
+to reduce writes to SSDs and remote memory.
+%Horizontal partitioning also allows a small matrix index to
+%locate non-zero entries in a sparse matrix quickly, because we only need to
+%locate tile rows. As such, the matrix index is tiny even for a sparse matrix
+%with billions of rows, permitting us to keep the entire matrix index in memory.
+
 \begin{algorithm}
 	\caption{Perform sparse matrix multiplication on tile rows of a sparse
 	matrix in a thread.}
@@ -178,12 +202,12 @@ from a single row interval.
 	\begin{algorithmic}[1]
 		\Procedure{ProcessTileRows}{trQueue}
 		\While{$|trQueue| > 0$}
-		\If {$|trQueue| > thres$} \State $numTRs \gets superTileSize$
-		\Else \State $numTRs \gets 1$
+		\If {$|trQueue| > \#threads$}
+		\State $trs \gets get\_super\_tile\_row(trQueue)$
+		\Else \State $trs \gets get\_tile\_row(trQueue)$
 		\EndIf
-		\State $trs \gets get\_tile\_rows(trQueue, numTRs)$
 		\State $read\_async(trs, callback=ProcessSTRow)$
-		\If {$pendingIOs > maxIOs$} \State wait for I/O
+		\If {$pendingIOs > 4$} \State wait for I/O
 		\EndIf
 		\EndWhile
 		\EndProcedure
@@ -206,45 +230,19 @@ from a single row interval.
 	\end{algorithmic}
 \end{algorithm}
 
-\subsection{Parallel Execution} \label{sec:exec}
-When parallelizing sparse matrix multiplication, we take into account
-semi-external memory and the power-law distribution of non-zero entries
-in each row of a sparse matrix.
-
-Semi-external memory favors horizontal partitioning on a sparse matrix
-for parallelization because this partitioning
-scheme minimizes writes to SSDs and remote memory with small memory
-consumption. Horizontal partitioning requires only the thread assigned tile
-rows to allocate local memory buffers for intermediate results when the thread
-goes through all tiles in the tile rows. All intermediate computation
-results on tiles are merged into the local memory buffers, which results in
-writing the output matrix at most once to SSDs and no remote memory writes.
-This is essential for semi-external memory computation because
-saved memory can be used to keep more columns in the input dense matrix in
-memory to reduce I/O from SSDs (as discussed in Section \ref{sec:mem}).
-In contrast, both vertical partitioning and 2D partitioning requires each
-thread to maintain a local memory buffer for the same tile rows in order
-to reduce writes to SSDs and remote memory.
-%Horizontal partitioning also allows a small matrix index to
-%locate non-zero entries in a sparse matrix quickly, because we only need to
-%locate tile rows. As such, the matrix index is tiny even for a sparse matrix
-%with billions of rows, permitting us to keep the entire matrix index in memory.
-
 For parallel computation, each thread runs \textit{ProcessTileRows} (in Algorithm
 \ref{alg:spmm}) that gets computation tasks (tile rows) from a global task queue
 \textit{trQueue} to achieve load balancing and large I/O writes to SSDs.
-%The global task queue is the only data structure that incurs
-%concurrent writes from threads in our semi-external sparse matrix multiplication.
-At the beginning, a thread gets larger computation tasks (several tile rows
-at a time); as the computation approaches completion, a thread gets smaller
-tasks (one tile row at a time). This design reduces concurrent access to
+At the beginning, a thread gets larger computation tasks (a super tile row at
+a time) with \textit{get\_super\_tile\_row}; as the computation approaches
+completion, a thread gets smaller tasks (one tile row at a time) with
+\textit{get\_tile\_row}. This design reduces concurrent access to
 the global data structure while realizing good load balancing. When a thread
 gets a computation task, it reads the corresponding tile rows asynchronously,
 and invokes the callback function \textit{ProcessSTRow} to process the tile rows
-once I/O is complete.
-$get\_tile\_rows()$ controls a global execution order to ensure that all threads
-are processing contiguous tile rows so that we can merge writes for computation
-results.
+once I/O is complete. $get\_tile\_row()$ and $get\_super\_tile\_row()$ control
+a global execution order that ensures that all threads are processing contiguous
+tile rows. Such an execution order helps to merge writes for computation results.
 
 When processing tile rows, we organize tiles into super tiles to better utilize
 the CPU cache. The tile size of a sparse
