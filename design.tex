@@ -80,30 +80,30 @@ they require an entry for each row/column in the row/column index. Doubly
 compressed sparse column (DCSC) \cite{Buluc08} is proposed to avoid this problem
 and is compact for hypersparse matrices such as submatrices of a sparse matrix.
 However, even DCSC wastes space because it requires the storage of
-pointers to columns and \dz{fails to reference to non-zero values with small
-integers (e.g., two-byte integers)}.
+pointers to columns and fails to reference to non-zero values with small
+integers (e.g., two-byte integers).
 
 We use a very compact format to store non-zero entries and refer to this
 format as SCSR (Super Compressed Row Storage) (Figure \ref{tile_format}).
-This format keeps data only for rows with non-zero entries in a tile and
-maintains a row header for each non-empty row. A row header has an identifier
-to indicate the row number, followed by column indices. 
-The most significant bit of the identifier is always set to 1, while the most
-significant bit of a column index entry is always set to 0. As such, we can easily
-distinguish a row identifier from a column index entry and determine the end
-of a row. Owing to the small size of a tile, we use two bytes to store a row
+Like DCSC, this format keeps data only for rows with non-zero entries in a tile.
+Each non-empty row has a row header that only contains an identifier
+to indicate the row number, followed by column indices. To determine the end
+of a row, the most significant bit of the identifier is always set to 1, while
+the most significant bit of a column index entry is always set to 0.
+Owing to the small size of a tile, we use two bytes to store a row
 number and a column index entry, which further reduces the storage size. As such,
 each non-zero entry requires at most four bytes to indicate its location in
 a matrix. Because the most significant bit is used to indicate the beginning
 of a row, this format allows a maximum tile size of $32K \times 32K$.
 
 SCSR is
-even more compact than DCSC \cite{Buluc08}. In the best case (each non-zero
+much more compact than DCSC \cite{Buluc08}. In the best case (each non-zero
 entry is stored in a separate row/column), SCSR requires only 40\% of the space
 than DCSC for binary sparse matrices. In the worst case (all non-zero entries
 are stored in a single row/column), SCSR uses the same space as DCSC. Figure
 \ref{fig:storage} shows that SCSR uses 45\%-70\% of the storage size used by
-DCSC for large real-world graphs (Table \ref{graphs}). SCSR saves more space
+DCSC for large real-world graphs (Table \ref{graphs}). In practice, SCSR saves
+more space
 in a sparse matrix where non-zero entries are more randomly distributed.
 
 \begin{figure}
@@ -174,7 +174,7 @@ from a single row interval.
 This section describes parallel execution of sparse matrix multiplication
 in semi-external memory. Memory is precious resource in this computation model
 because memory should be used to keep more columns in the input dense matrix
-in memory to reduce I/O from SSDs (as discussed in Section \ref{sec:mem}).
+to reduce I/O from SSDs (as discussed in Section \ref{sec:mem}).
 As such, we deploy only computation optimizations with a small memory footprint.
 %and the power-law distribution of non-zero entries in each row of a sparse
 %matrix.
@@ -195,56 +195,85 @@ to reduce writes to SSDs and remote memory.
 %with billions of rows, permitting us to keep the entire matrix index in memory.
 
 \begin{algorithm}
-	\caption{Perform sparse matrix multiplication on tile rows of a sparse
-	matrix in a thread.}
+	\algblock{ParFor}{EndParFor}
+	% customising the new block
+	\algnewcommand\algorithmicparfor{\textbf{parfor}}
+	\algnewcommand\algorithmicpardo{\textbf{do}}
+	\algnewcommand\algorithmicendparfor{\textbf{end\ parfor}}
+	\algrenewtext{ParFor}[1]{\algorithmicparfor\ #1\ \algorithmicpardo}
+	\algrenewtext{EndParFor}{\algorithmicendparfor}
+
+	\caption{Parallel execution of sparse matrix dense matrix multiplication.}
 	\label{alg:spmm}
 	\begin{algorithmic}[1]
-		\Procedure{ProcessTileRows}{$trQueue$}
-		\State {$trQueue$:} \Comment{a queue of tile rows shared by all threads}
-		\While{$|trQueue| > 0$}
-		\If {$|trQueue| > \#threads$}
-		\State $tr \gets get\_super\_tile\_row(trQueue)$
-		\Else \State $tr \gets get\_tile\_row(trQueue)$
+		\Procedure{SparseMatrixMultiply}{$spm$, $inM$}
+		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix
+		\Statex \textbf{Input}: $inM$, a $n \times p$ dense matrix
+		\Statex \textbf{Output}: $outM$, a $n \times p$ dense matrix
+		\State $trQ \gets get\_tile\_row\_locs(spm)$
+		\State $outM \gets zeros(n, p)$
+		\ParFor{$j \gets 1, \#threads$}
+		\State $ProcessTileRows(spm, trQ, inM, outM)$
+		\EndParFor
+		\EndProcedure
+
+		\State
+
+		\Procedure{ProcessTileRows}{$spm$, $trQ$, $inM$, $outM$}
+		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix
+		\Statex \textbf{Input}: $trQ$, a queue that contains the location of all tile rows
+		\Statex \textbf{Input}: $inM$, a $n \times p$ input dense matrix of SpMM
+		\Statex \textbf{Input}: $outM$, a $n \times p$ output dense matrix of SpMM
+		\While{$|trQ| > 0$}
+		\If {$|trQ| > \#threads$}
+		\State $locs \gets get\_super\_tile\_row(trQ)$
+		\Else \State $locs \gets get\_tile\_row(trQ)$
 		\EndIf
-		\State $read\_async(tr, callback=ProcessSTRow)$
-		\If {more than 4 pending I/Os} \State wait for I/O
-		\EndIf
+		\State $tr \gets read\_tilerow\_async(spm, locs)$
+		\State $res \gets ProcessSTRow(tr, inM)$ if $tr$ is ready
+		\State $write\_rows\_async(outM, res)$
 		\EndWhile
 		\EndProcedure
 
 		\State
 
-		\Procedure{ProcessSTRow}{$trs$, $inMat$}
-		\State {$trs$:} \Comment{$s \times n$ submatrix in the sparse matrix}
-		\State {$inMat$:} \Comment{$n \times p$ input dense matrix of SpMM}
-		\State $outBuf \gets matrix(0, s, p)$
+		\Procedure{ProcessSTRow}{$trs$, $inM$}
+		\Statex \textbf{Input}: $trs$, a $s \times n$ submatrix in the sparse matrix
+		\Statex \textbf{Input}: $inM$, $n \times p$ dense matrix
+		\Statex \textbf{Output}: $outBuf$, a $s \times p$ dense matrix
+		\State $outBuf \gets zeros(s, p)$
 		\State $sts \gets get\_super\_tiles(trs)$
 		\For{$st \in sts$}
 		\State $tiles \gets get\_tiles(st)$
 		\For{$tile \in tiles$}
-		\State $lInMat \gets$ rows from $inMat$ for $tile$
+		\State $lInMat \gets$ rows from $inM$ for $tile$
 		\State $lOutMat \gets$ rows from $outBuf$ for $tile$
 		\State $lOutMat += tile * lInMat$
 		\EndFor
 		\EndFor
-		\State $write\_async(outBuf)$
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
 
-For parallel computation, each thread runs \textit{ProcessTileRows} (in Algorithm
-\ref{alg:spmm}) that gets computation tasks (tile rows) from a global task queue
-\textit{trQueue} to achieve load balancing and large I/O writes to SSDs.
-At the beginning, a thread gets larger computation tasks (a super tile row at
+For parallel computation, we construct a global task queue \textit{trQueue}
+and each thread runs \textit{ProcessTileRows} (in Algorithm \ref{alg:spmm})
+that gets computation tasks (tile rows) to achieve load balancing and large
+I/O writes to SSDs.
+At the beginning, a thread gets larger computation tasks (one super tile row at
 a time) with \textit{get\_super\_tile\_row}; as the computation approaches
 completion, a thread gets smaller tasks (one tile row at a time) with
 \textit{get\_tile\_row}. This design reduces concurrent access to
 the global data structure while realizing good load balancing. When a thread
 gets a computation task, it reads the corresponding tile rows asynchronously,
-and invokes the callback function \textit{ProcessSTRow} to process the tile rows
-once I/O is complete. $get\_tile\_row()$ and $get\_super\_tile\_row()$ control
-a global execution order that ensures that all threads are processing contiguous
-tile rows. Such an execution order helps to merge writes for computation results.
+invokes the callback function \textit{ProcessSTRow} to process the tile rows
+once I/O is complete, and write computation results back to SSDs asynchronously.
+To ensure sustainable write throughput to SSDs \cite{sfs}, we need large writes
+to SSDs. As such, $write\_rows\_async()$ postpones a write, merges it with
+the ones from other threads and writes them to SSDs with a single I/O.
+To assist in I/O merging, we use \textit{get\_tile\_row()} and
+\textit{get\_super\_tile\_row()} to control a global execution order that
+ensures that all threads are processing contiguous tile rows. Such an execution
+order helps to merge writes for computation results.
 
 When processing tile rows, we organize tiles into super tiles with
 $get\_super\_tiles$ to better utilize the CPU cache. The tile size of a sparse
@@ -264,11 +293,7 @@ tile before moving to the next one. As such, the computation on a tile reuses
 data in the CPU cache from the computation on the previous tile. We maintain
 a local memory buffer $outBuf$ to store the computation results,
 which minimizes remote memory access. Once the computation in \textit{ProcessSTRow}
-is complete, $outBuf$ contains complete results and is written back to
-SSDs asynchronously with $write\_async()$. The computation result from a task
-may be small. Instead of writing the result immediately, $write\_async()$ may
-postpone the write and merge it with ones from other threads so that we can
-write them to SSDs with a single I/O.
+is complete, $outBuf$ contains complete results.
 
 In spite of nearly random edge connection in a real-world graph, we explore
 regularity in multiplying a tile with a partition of a row-major dense matrix.
