@@ -183,24 +183,29 @@ MKL and Tpetra owing to its compact format for sparse matrices.
 	\vspace{3pt}
 	\caption{The performance of our SEM-SpMM on our 48-core machine (SEM) and
 		Trilinos Tpetra in EC2 clusters (2xEC2, 4xEC2 and 8xEC2), normalized to
-		IM-SpMM for the same graphs. We also show the performance of IM-SpMM on
+		IM-SpMM on our 48-core machine for the same graphs. We also show
+		the performance of IM-SpMM on
 	one of the EC2 instance (IM-EC2) where Trilinos Tpetra runs.}
 	\label{perf:ec2}
 \end{figure}
 
-Our SEM-SpMM also outperforms Trilinos Tpetra that runs in the Amazon cloud
-by a large margin, especially on real-world graphs (Figure \ref{perf:ec2}).
-When Tpetra runs on 8 EC2 instances, it has 2.5 times as many CPU cores as
-our SEM-SpMM on the NUMA machine. Trilinos Tpetra is not able to run SpMV
-on RMAT-160 on two EC2 nodes. Owing to the compact format for a sparse matrix,
-our IM-SpMM can run on all of the graphs in a single instance of the same
-type. Even though an EC2 instance has only 16 physical CPU cores, one third of
-the CPU cores on our NUMA machine, our IM-SpMM on an EC2 instance achieves around
+Our SpMM implementation uses much less computation resources to achieve
+comparable performance and, in many cases, outperform Trilinos Tpetra that
+runs in the Amazon cloud, especially on real-world graphs (Figure
+\ref{perf:ec2}). In this experiment, we run our SpMM implementation on both
+our NUMA machine with 48 CPU cores
+and one of the EC2 machines with 16 CPU cores. Owing to the compact format
+for a sparse matrix, our SpMM implementation can run on all of the graphs
+in memory on an EC2 instance. When Tpetra runs on 8 EC2 instances, it has
+2.5 times as many CPU cores as our NUMA machine. Tpetra is not
+able to run SpMV on RMAT-160 on two EC2 nodes. Even though an EC2 instance
+has only 16 physical CPU cores, our IM-SpMM on an EC2 instance achieves around
 half of the performance of our IM-SpMM on our NUMA machine. In contrast,
 Trilinos Tpetra uses many more computation resources and still barely reaches
-the same performance. One of the main reasons that our SEM-SpMM performs much
+the same performance as our IM-SpMM and SEM-SpMM on our NUMA machine. One of
+the main reasons that our SpMM implementation performs much
 better on real-world graphs is that these graphs are more likely to cause
-load imbalance and our SEM-SpMM is able to balance load much better than
+load imbalance and our SpMM implementation balances load much better than
 distributed implementations that partition data.
 
 \subsubsection{SEM-SpMM with a large input dense matrix}
@@ -324,7 +329,7 @@ domain names. We apply the I/O optimizations in the following order:
 	\item use SCSR to reduce the number of bits read from SSDs (SCSR),
 	\item reduce memory allocation overhead for I/O with per-thread buffer
 		pools (\textit{buf-pool}),
-	\item reduce the number of thread context switch for I/O access with I/O
+	\item reduce the number of thread context switches for I/O accesses with I/O
 		polling (\textit{IO-poll}),
 \end{itemize}
 
