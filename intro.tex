@@ -24,7 +24,8 @@ the number of non-zero entries per row and column.
 
 It is challenging to have an efficient implementation of sparse matrix
 multiplication, especially for sparse matrices that encode real-world graphs.
-Sparse matrix multiplication is notorious for achieving only
+Sparse matrix multiplication has very low computation density and its performance
+is limited by memory access. As such, this operation usually achieves only
 a small fraction of the peak performance of a modern processor \cite{Williams07}.
 It becomes even more challenging to perform this operation on graphs due to
 random memory access caused by near-random vertex connection and load imbalancing
@@ -66,7 +67,7 @@ columns of a dense matrix are kept in memory and the sparse matrix is accessed
 from external memory. In semi-external memory, we assume
 that the memory of a machine is sufficient to keep at least one column
 of the input dense matrix but is insufficient to hold the sparse matrix
-and the dense matrices in memory. Even though SpMM could be implemented with
+and the dense matrices. Even though SpMM could be implemented with
 SpMV, such an implementation would fail to explore data locality in SpMM and
 result in higher I/O access in semi-external memory. We optimize SpMM directly
 to overcome these problems. Given fast SSDs, we demonstrate that the SEM
@@ -77,7 +78,7 @@ to the ratio of non-zero entries to rows or columns in a sparse matrix.
 
 % Why is it new/different/special?
 
-We have to overcome many technical challenges to construct a sparse matrix
+We overcome many technical challenges to construct a sparse matrix
 multiplication implementation on SSDs to achieve performance. Even though SSDs
 are fast, they are still an order of magnitude slower than DRAM in throughput
 and multiple orders of magnitude slower than DRAM in latency.
@@ -86,25 +87,20 @@ higher throughput than random I/O \cite{safs}. In addition, random writes are
 harmful to SSDs \cite{sfs} because
 they decrease I/O throughput and shorten the lives of SSDs.
 
-Semi-external memory provides a scalable and efficient SpMM solution that
-incorporates I/O access to SSDs, parallelization and in-memory optimizations.
-It streams the sparse matrix from SSDs for computation, which results in maximal
-I/O throughput from SSDs. It streams the output matrix to SSDs only once if
-the memory is insufficient to store the output matrix, minimizing writes to
-SSDs and maximizing I/O throughput. We design a very compact sparse matrix
-format to further accelerates retrieving a sparse
-matrix from SSDs. In the parallel setting, each thread streams its own
-partitions of the sparse matrix to memory and performs computation.
-We deploy multiple in-memory optimizations specifically designed for power-law
-graphs. For example, we assign partitions of a sparse matrix dynamically to
-threads for load balancing, deploy cache blocking to increase CPU cache hits,
-distribute the dense matrix to NUMA nodes to fully utilize the memory
-bandwidth of a NUMA machine, and organize the dense matrix in the row-major
-order to explore data locality in SpMM.
+Semi-external memory provides a scalable and efficient SpMM solution with
+both computation and I/O optimizations. During the computation, each
+thread streams its own partitions of the sparse matrix from SSDs, maximizing
+I/O throughput and avoiding thread synchronization. We buffer all
+intermediate computation results in memory and stream the output matrix to SSDs
+at most once, minimizing writes to SSDs. We design a very compact sparse matrix
+format to accelerate retrieving a sparse matrix from SSDs.
+Semi-external memory has memory constraints. As such, we deploy
+only computation optimizations that require a small memory footprint, such as
+dynamic task scheduling and cache blocking.
 
 Our semi-external memory solution adapts to machines with different memory
-capacities. When the dense matrix is larger than memory, we split the dense
-matrix vertically into multiple partitions so that each partition can fit in
+capacities. When the dense matrix is larger than memory, we split it
+vertically into multiple partitions so that each partition can fit in
 memory. As such, the minimum memory requirement of our solution is $O(n)$,
 where $n$ is the number of rows in the input dense matrix. By keeping more columns
 in the dense matrix in memory, we reduce I/O from SSDs in SpMM. When the number
@@ -121,16 +117,15 @@ and the impact of the memory size on the performance of the applications.
 
 % What are it's key features?
 
-Our result shows that for real-world sparse graphs, our SEM sparse matrix
-multiplication achieves almost 100\% performance of our in-memory implementation
-on a large parallel machine with 48 CPU cores
-when the dense matrix has more than four columns. Even for sparse matrix vector
-multiplication, our SEM implementation achieves at least 65\% performance of
-our in-memory implementation and significantly outperforms Trilinos \cite{trilinos}
-and MKL \cite{mkl}. The applications implemented with our SpMM significantly
+Our result shows that for real-world sparse graphs, our SEM SpMM achieves almost
+100\% performance of our in-memory implementation on a large parallel machine
+with 48 CPU cores when the dense matrix has more than four columns. Even for
+SpMV, our SEM implementation achieves at least 65\% performance of our in-memory
+implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
+a factor of $2-9$. The applications implemented with our SpMM significantly
 outperform the state-of-the-art implementations of these applications. As such,
 we conclude that semi-external memory coupled with SSDs delivers an efficient
-solution for large-scale sparse matrix multiplication. It also serves
+solution for large-scale sparse matrix multiplication. It serves
 as a building block and offers new design possibilities for large-scale
 data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
 and processing bigger problems on fewer machines. The code of this work is
