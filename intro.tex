@@ -79,16 +79,18 @@ to the ratio of non-zero entries to rows or columns in a sparse matrix.
 % Why is it new/different/special?
 
 We overcome many technical challenges to construct a sparse matrix
-multiplication implementation on SSDs to achieve performance. Even though SSDs
-are fast, they are still an order of magnitude slower than DRAM in throughput
-and multiple orders of magnitude slower than DRAM in latency.
-To maximize I/O throughput, sequential I/O is preferred because it has much
-higher throughput than random I/O \cite{safs}. In addition, random writes are
-harmful to SSDs \cite{sfs} because
-they decrease I/O throughput and shorten the lives of SSDs.
+multiplication implementation on SSDs to achieve performance. Specifically,
+SSDs are an order of magnitude slower in throughput and multiple orders of
+magnitude slower in latency than DRAM. Furthermore, sequential I/O of SSDs
+is still much faster
+than random I/O \cite{safs} and reads are faster than writes. In addition,
+SSDs wear out when we write data to them and random writes further shorten
+the lives of SSDs \cite{sfs}. As such, our solution needs to sequentialize
+I/O access and reduce I/O, especially writes.
 
-Semi-external memory provides a scalable and efficient SpMM solution with
-both computation and I/O optimizations. During the computation, each
+Semi-external memory provides a scalable and efficient SpMM solution that
+meets the I/O challenges and incorporates substantial computation optimizations.
+During the computation, each
 thread streams its own partitions of the sparse matrix from SSDs, maximizing
 I/O throughput and avoiding thread synchronization. We buffer all
 intermediate computation results in memory and stream the output matrix to SSDs
