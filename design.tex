@@ -35,7 +35,7 @@ in semi-external memory as before and stream the output matrix to SSDs.
 To support efficient sparse matrix multiplication on graphs in semi-external
 memory, we use an alternative format for sparse matrices to increase
 CPU cache hits and reduce I/O from SSDs. Compressed row
-storage (CSR) or compressed column storage (CSC) format are not designed for
+storage (CSR) or compressed column storage (CSC) are not designed for
 graphs and incur many CPU cache misses. They also require
 a relatively large storage size. For a sparse matrix with billions of non-zero
 entries, we have to use eight bytes to store row and column indices.
@@ -207,30 +207,30 @@ to reduce writes to SSDs and remote memory.
 	\label{alg:spmm}
 	\begin{algorithmic}[1]
 		\Procedure{SparseMatrixMultiply}{$spm$, $inM$}
-		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix
-		\Statex \textbf{Input}: $inM$, a $n \times p$ dense matrix
-		\Statex \textbf{Output}: $outM$, a $n \times p$ dense matrix
-		\State $trQ \gets get\_tile\_row\_locs(spm)$
-		\State $outM \gets zeros(n, p)$
-		\ParFor{$j \gets 1, \#threads$}
-		\State $ProcessTileRows(spm, trQ, inM, outM)$
+		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix on SSDs
+		\Statex \textbf{Input}: $inM$, a $n \times p$ dense matrix in memory
+		\Statex \textbf{Output}: $outM$, a $n \times p$ dense matrix on SSDs
+		\State $\vec{trQ} \gets get\_tile\_row\_ids(spm)$
+		\State $outM \gets zeros\_SSD(n, p)$
+		\ParFor{$thread \in \vec{threads}$}
+		\State $ProcessTileRows(spm, \vec{trQ}, inM, outM)$
 		\EndParFor
 		\EndProcedure
 
 		\State
 
-		\Procedure{ProcessTileRows}{$spm$, $trQ$, $inM$, $outM$}
-		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix
-		\Statex \textbf{Input}: $trQ$, a queue that contains the location of all tile rows
-		\Statex \textbf{Input}: $inM$, a $n \times p$ input dense matrix of SpMM
-		\Statex \textbf{Input}: $outM$, a $n \times p$ output dense matrix of SpMM
-		\While{$|trQ| > 0$}
-		\If {$|trQ| > \#threads$}
-		\State $locs \gets get\_super\_tile\_row(trQ)$
-		\Else \State $locs \gets get\_tile\_row(trQ)$
+		\Procedure{ProcessTileRows}{$spm$, $\vec{trQ}$, $inM$, $outM$}
+		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix on SSDs
+		\Statex \textbf{Input}: $\vec{trQ}$, a queue that contains all tile row ids
+		\Statex \textbf{Input}: $inM$, a $n \times p$ input dense matrix in memory
+		\Statex \textbf{Input}: $outM$, a $n \times p$ output dense matrix on SSDs
+		\While{$|\vec{trQ}| > 0$}
+		\If {$|\vec{trQ}| > \#threads$}
+		\State $\vec{ids} \gets get\_super\_tile\_row(\vec{trQ})$
+		\Else \State $\vec{ids} \gets get\_tile\_row(\vec{trQ})$
 		\EndIf
-		\State $tr \gets read\_tilerow\_async(spm, locs)$
-		\State $res \gets ProcessSTRow(tr, inM)$ if $tr$ is ready
+		\State $t \gets read\_tilerow\_async(spm, \vec{ids})$
+		\State $res \gets ProcessSTRow(t, inM)$ when $t$ is ready
 		\State $write\_rows\_async(outM, res)$
 		\EndWhile
 		\EndProcedure
@@ -242,10 +242,10 @@ to reduce writes to SSDs and remote memory.
 		\Statex \textbf{Input}: $inM$, $n \times p$ dense matrix
 		\Statex \textbf{Output}: $outBuf$, a $s \times p$ dense matrix
 		\State $outBuf \gets zeros(s, p)$
-		\State $sts \gets get\_super\_tiles(trs)$
-		\For{$st \in sts$}
-		\State $tiles \gets get\_tiles(st)$
-		\For{$tile \in tiles$}
+		\State $\vec{sts} \gets get\_super\_tiles(trs)$
+		\For{$st \in \vec{sts}$}
+		\State $\vec{tiles} \gets get\_tiles(st)$
+		\For{$tile \in \vec{tiles}$}
 		\State $lInMat \gets$ rows from $inM$ for $tile$
 		\State $lOutMat \gets$ rows from $outBuf$ for $tile$
 		\State $lOutMat += tile * lInMat$
@@ -255,7 +255,7 @@ to reduce writes to SSDs and remote memory.
 	\end{algorithmic}
 \end{algorithm}
 
-For parallel computation, we construct a global task queue \textit{trQueue}
+For parallel computation, we construct a global task queue \textit{trQ}
 and each thread runs \textit{ProcessTileRows} (in Algorithm \ref{alg:spmm})
 that gets computation tasks (tile rows) to achieve load balancing and large
 I/O writes to SSDs.
@@ -267,13 +267,14 @@ the global data structure while realizing good load balancing. When a thread
 gets a computation task, it reads the corresponding tile rows asynchronously,
 invokes the callback function \textit{ProcessSTRow} to process the tile rows
 once I/O is complete, and write computation results back to SSDs asynchronously.
-To ensure sustainable write throughput to SSDs \cite{sfs}, we need large writes
-to SSDs. As such, $write\_rows\_async()$ postpones a write, merges it with
+To ensure sustainable write throughput to SSDs \cite{sfs}, we need large writes.
+$write\_rows\_async()$ postpones a write, merges it with
 the ones from other threads and writes them to SSDs with a single I/O.
 To assist in I/O merging, we use \textit{get\_tile\_row()} and
 \textit{get\_super\_tile\_row()} to control a global execution order that
-ensures that all threads are processing contiguous tile rows. Such an execution
-order helps to merge writes for computation results.
+ensures that all threads are processing contiguous tile rows. As such,
+available computation results in memory are spatially close to each other
+on SSDs to help I/O merge.
 
 When processing tile rows, we organize tiles into super tiles with
 $get\_super\_tiles$ to better utilize the CPU cache. The tile size of a sparse
