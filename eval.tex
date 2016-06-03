@@ -181,8 +181,8 @@ MKL and Tpetra owing to its compact format for sparse matrices.
 		\label{perf:ec2:spmm8}
 	\end{subfigure}
 	\vspace{3pt}
-	\caption{The performance of our SEM-SpMM on our 48-core machine (SEM) and
-		Trilinos Tpetra in EC2 clusters (2xEC2, 4xEC2 and 8xEC2), normalized to
+	\caption{The performance of SEM-SpMM on our 48-core machine (SEM) and
+		Trilinos Tpetra on EC2 clusters (2xEC2, 4xEC2 and 8xEC2), normalized to
 		IM-SpMM on our 48-core machine for the same graphs. We also show
 		the performance of IM-SpMM on
 	one of the EC2 instance (IM-EC2) where Trilinos Tpetra runs.}
@@ -205,7 +205,7 @@ Trilinos Tpetra uses many more computation resources and still barely reaches
 the same performance as our IM-SpMM and SEM-SpMM on our NUMA machine. One of
 the main reasons that our SpMM implementation performs much
 better on real-world graphs is that these graphs are more likely to cause
-load imbalance and our SpMM implementation balances load much better than
+load imbalance. Our SpMM implementation balances load much better than
 distributed implementations that partition data.
 
 \subsubsection{SEM-SpMM with a large input dense matrix}
@@ -215,7 +215,8 @@ in which neither the sparse matrix nor the dense matrices can fit in memory.
 In this experiment, we measure the performance of multiplying a sparse matrix
 with a dense matrix of 32 columns and the input dense matrix is stored on SSDs
 initially. We study the impact of memory size on the performance of SEM-SpMM
-by varying the number of columns that can fit in memory. SEM-SpMM accesses
+by artificially varying the number of columns that can fit in memory. SEM-SpMM
+accesses
 the sparse matrix with direct I/O and, thus, varying the number of columns
 in the dense matrix that fit in memory does not affect data access to the
 sparse matrix. In each run, we need to load the input dense matrix from
@@ -398,9 +399,9 @@ to keep one vector in memory, which results in very small memory consumption.
 		\footnotesize
 		\include{SpMM_figs/pagerank}
 		\caption{The runtime of SpMM-PageRank in 30 iterations. The SEM
-			implementation keeps different numbers of vectors in memory.
-			We compare them with the implementations in FlashGraph and GraphLab
-		Create.}
+			implementation keeps different numbers of vectors in memory
+			(SEM-1vec, SEC-2vec, SEM-3vec). We compare them with
+		the implementations in FlashGraph and GraphLab Create.}
 		\label{perf:pagerank}
 	\end{center}
 \end{figure}
