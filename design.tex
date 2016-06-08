@@ -42,7 +42,7 @@ entries, we have to use eight bytes to store row and column indices.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.3]{SpMM_figs/sparse_mat.pdf}
+\includegraphics[scale=0.2]{SpMM_figs/sparse_mat.png}
 \caption{The format of a sparse matrix.}
 \label{sparse_mat}
 \end{figure}
@@ -66,7 +66,7 @@ size and the adaptibility to different numbers of columns.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.5]{SpMM_figs/tile_format.pdf}
+\includegraphics[scale=0.2]{SpMM_figs/tile_format.png}
 \caption{The storage format (SCSR + COO) of a tile in a sparse matrix.}
 \label{tile_format}
 \end{figure}
@@ -109,7 +109,7 @@ in a sparse matrix where non-zero entries are more randomly distributed.
 \begin{figure}
 	\begin{center}
 		\footnotesize
-		\include{SpMM_figs/storage}
+		\includegraphics[scale=1]{SpMM_figs/storage.pdf}
 		\caption{The ratio of the storage size required by SCSR and DCSC
 			\cite{Buluc08} format for real-world graphs. SCSR is much more
 		compact than DCSC for graphs.}
@@ -223,7 +223,7 @@ to reduce writes to SSDs and remote memory.
 		\Statex \textbf{Input}: $spm$, a $n \times n$ sparse matrix on SSDs
 		\Statex \textbf{Input}: $\vec{trQ}$, a queue that contains all tile row ids
 		\Statex \textbf{Input}: $inM$, a $n \times p$ input dense matrix in memory
-		\Statex \textbf{Input}: $outM$, a $n \times p$ output dense matrix on SSDs
+		\Statex \textbf{In-Out}: $outM$, a $n \times p$ output dense matrix on SSDs
 		\While{$|\vec{trQ}| > 0$}
 		\If {$|\vec{trQ}| > \#threads$}
 		\State $\vec{ids} \gets get\_super\_tile\_row(\vec{trQ})$
@@ -272,9 +272,8 @@ $write\_rows\_async()$ postpones a write, merges it with
 the ones from other threads and writes them to SSDs with a single I/O.
 To assist in I/O merging, we use \textit{get\_tile\_row()} and
 \textit{get\_super\_tile\_row()} to control a global execution order that
-ensures that all threads are processing contiguous tile rows. As such,
-available computation results in memory are spatially close to each other
-on SSDs to help I/O merge.
+ensures that all threads are processing contiguous tile rows and the results
+from the tile rows are located closely on SSDs.
 
 When processing tile rows, we organize tiles into super tiles with
 $get\_super\_tiles$ to better utilize the CPU cache. The tile size of a sparse
