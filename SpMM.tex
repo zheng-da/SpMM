@@ -187,6 +187,7 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{authblk}
+\usepackage{epstopdf}
 \definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
 
 
@@ -495,15 +496,14 @@
 Owing to random memory access patterns, sparse matrix multiplication is
 traditionally performed in memory and scales to large matrices using
 the distributed memory of multiple nodes. In contrast, we scale this operation
-by utilizing commodity
-SSDs. We implement sparse matrix dense matrix multiplication (SpMM) in
-a semi-external memory (SEM) fashion, i.e., we keep the sparse matrix on SSDs
-and dense matrices in memory. Our SEM SpMM incorporates many in-memory
+by utilizing commodity SSDs. We implement sparse matrix dense matrix multiplication
+in a semi-external memory fashion (SEM-SpMM), i.e., we keep the sparse matrix
+on SSDs and dense matrices in memory. Our SEM-SpMM incorporates many in-memory
 optimizations for large graphs with near-random vertex
-connection. Coupled with many I/O optimizations, our SEM SpMM achieves performance
+connection. Coupled with many I/O optimizations, our SEM-SpMM achieves performance
 comparable to our in-memory implementation on a large parallel machine and
 outperforms the implementations in Trilinos and Intel MKL.
-Our experiments show that the SEM SpMM achieves almost 100\% performance
+Our experiments show that the SEM-SpMM achieves almost 100\% performance
 of the in-memory implementation when the dense matrix has more
 than four columns; it achieves at least 65\% performance of the in-memory
 implementation for all of our graphs when the dense matrix has only one column.
