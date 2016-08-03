@@ -1,13 +1,13 @@
 \section{Sparse matrix multiplication} \label{sec:spmm}
-Sparse matrix multiplication leads to many random memory
+Sparse matrix dense matrix multiplication (SpMM) leads to many random memory
 accesses and its performance is usually limited by random memory throughput
-of DRAM. We perform sparse matrix multiplication in semi-external memory (SEM)
+of DRAM. We perform SpMM in semi-external memory (SEM)
 to scale to a sparse matrix with billions of rows and columns. This strategy enables
 nearly in-memory performance while achieving scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
 
 \subsection{Semi-external memory}
-Our definition of semi-external memory for sparse matrix multiplication
+Our definition of semi-external memory for SpMM
 keeps the sparse matrix on SSDs and the input dense matrix or some columns
 of the input dense matrix in memory. During the computation, we stream
 data in the sparse matrix from SSDs to maximize I/O throughput.
@@ -21,34 +21,44 @@ to SSDs or to the subsequent computation to reduce memory consumption and
 potentially I/O as well.
 
 In some applications such as non-negative matrix factorization (Section
-\ref{sec:apps}), even the input dense matrix cannot fit in memory. In this case,
+\ref{sec:spmm:apps}), even the input dense matrix cannot fit in memory. In this case,
 we partition the input dense matrix vertically so that each partition has
 complete columns of the original input dense matrix and can fit in memory.
 Each vertical partition stores elements in the row-major order to increase
-data locality. For each partition, we perform sparse matrix multiplication
+data locality. For each partition, we perform SpMM
 in semi-external memory as before and stream the output matrix to SSDs.
 %This approach requires $\lceil \frac{D}{M} \rceil$ passes over the sparse
 %matrix, where $D$ is the storage size of the input dense matrix and $M$ is
 %the memory size.
 
 \subsection{Sparse matrix format}
-To support efficient sparse matrix multiplication on graphs in semi-external
-memory, we use an alternative format for sparse matrices to increase
-CPU cache hits and reduce I/O from SSDs. Compressed row
-storage (CSR) or compressed column storage (CSC) are not designed for
-graphs and incur many CPU cache misses. They also require
-a relatively large storage size. For a sparse matrix with billions of non-zero
-entries, we have to use eight bytes to store row and column indices.
+To support efficient SpMM on graphs in semi-external memory, we design a new compact
+sparse matrix format that increases CPU cache hits and reduces the amount of data
+read from SSDs. A compact format is performance critical because in SEM-SpMM SSDs
+may be the bottleneck.
+
+Traditional sparse matrix formats such as compressed row storage (CSR) and
+compressed column storage (CSC) are not designed for graphs. Graphs are sparse
+so large and the dense matrix involved in SpMM is too large to fit in CPU cache.
+Furthermore, graphs usually have nearly random vertex connection. With these
+two formats, sparse matrix multiplication results in random access to rows in
+a large dense matrix and causes
+many CPU cache misses. In addition, these two formats also require a large
+storage size. For a sparse matrix with billions of non-zero entries, we have to
+use eight bytes to store row and column indices.
 
 \begin{figure}
 \centering
-\includegraphics[scale=0.2]{SpMM_figs/sparse_mat.png}
-\caption{The format of a sparse matrix.}
+\includegraphics[scale=0.3]{SpMM_figs/sparse_mat.pdf}
+\caption{The storage format of a sparse matrix. In this example, non-zero
+entries of the sparse matrix are organized into 9 tiles. Tiles are stored in
+the row-major order and a tile stores non-zero entries in SCSR+COO format.}
 \label{sparse_mat}
 \end{figure}
 
 To increase CPU cache hits, we deploy cache blocking \cite{Im04} and store
-non-zero entries of a sparse matrix in tiles (Figure \ref{sparse_mat}).
+non-zero entries of a sparse matrix in tiles, $k \times k$ submatrices (Figure
+\ref{sparse_mat}).
 When a tile is small, the rows from the input and output dense matrices
 involved in multiplication with the tile are always kept in the CPU cache
 during the computation. The optimal tile size should fill the CPU cache
@@ -64,27 +74,23 @@ a very small number of columns in sparse matrix multiplication. Therefore, we
 use the tile size of $16K \times 16K$ by default to balance the matrix storage
 size and the adaptibility to different numbers of columns.
 
-\begin{figure}
-\centering
-\includegraphics[scale=0.2]{SpMM_figs/tile_format.png}
-\caption{The storage format (SCSR + COO) of a tile in a sparse matrix.}
-\label{tile_format}
-\end{figure}
-
-We need a very compact format to store non-zero entries in a tile to reduce
-the number of bytes in a sparse matrix read from SSDs. A compact format is
-performance critical because in semi-external memory SpMM SSDs
-may be the bottleneck. In very sparse matrices many rows in a tile
-do not have any non-zero entries. The CSR or CSC formats waste space because
-they require an entry for each row/column in the row/column index. Doubly
-compressed sparse column (DCSC) \cite{Buluc08} is proposed to avoid this problem
-and is compact for hypersparse matrices such as submatrices of a sparse matrix.
-However, even DCSC wastes space because it requires the storage of
-pointers to columns and fails to reference to non-zero values with small
-integers (e.g., two-byte integers).
+%\begin{figure}
+%\centering
+%\includegraphics[scale=0.3]{SpMM_figs/tile_format.pdf}
+%\caption{The storage format (SCSR + COO) of a tile in a sparse matrix.}
+%\label{tile_format}
+%\end{figure}
 
 We use a very compact format to store non-zero entries and refer to this
-format as SCSR (Super Compressed Row Storage) (Figure \ref{tile_format}).
+format as SCSR (Super Compressed Row Storage) (Figure \ref{sparse_mat}).
+In very sparse matrices many rows in a tile
+do not have any non-zero entries. The CSR or CSC formats waste space because
+they require an entry for each row/column in the row/column index. Doubly
+compressed sparse column (DCSC) \cite{Buluc08} is proposed to avoid this problem.
+However, even DCSC wastes space because it requires the storage of
+pointers to columns and fails to reference to non-zero values with small
+integers (e.g., two-byte integers). SCSR is designed to further shrink the storage
+size of a tile.
 Like DCSC, this format keeps data only for rows with non-zero entries in a tile.
 Each non-empty row has a row header that only contains an identifier
 to indicate the row number, followed by column indices. To determine the end
@@ -96,15 +102,20 @@ each non-zero entry requires at most four bytes to indicate its location in
 a matrix. Because the most significant bit is used to indicate the beginning
 of a row, this format allows a maximum tile size of $32K \times 32K$.
 
-SCSR is
-much more compact than DCSC \cite{Buluc08}. In the best case (each non-zero
-entry is stored in a separate row/column), SCSR requires only 40\% of the space
-than DCSC for binary sparse matrices. In the worst case (all non-zero entries
-are stored in a single row/column), SCSR uses the same space as DCSC. Figure
-\ref{fig:storage} shows that SCSR uses 45\%-70\% of the storage size used by
-DCSC for large real-world graphs (Table \ref{graphs}). In practice, SCSR saves
-more space
-in a sparse matrix where non-zero entries are more randomly distributed.
+SCSR is much more compact than DCSC \cite{Buluc08}. For a tile with $nnr$
+non-zero rows (rows with at least one non-zero entry) and $nnz$ non-zero entries,
+SCSR requires $2 \times nnr$ bytes for row ids, $2 \times nnz$ bytes for column
+indices of non-zero entries and $c \times nnz$ bytes for non-zero values, where
+$c$ is the number of
+bytes for a non-zero value. As such, $S_{SCSR} = 2 \times nnr + (2 + c) \times nnz$.
+In contrast, DCSC requires much more metadata for a tile
+with $nnc$ non-zero columns and $nnz$ non-zero entries.
+$S_{DCSC} = (2 + 2 + 4) \times nnc + (2 + c) \times nnz$ bytes. In a $k \times k$
+tile, $nnr \le nnz \le nnr \times k$. On average, $nnr \approx nnc$ in most sparse
+matrices. As such, for a binary sparse matrix, $0.4 \le S_{SCSR} / S_{DCSC} < 1$.
+SCSR saves more space in a sparse matrix with larger $nnr / nnz$. Figure
+\ref{fig:storage} shows that SCSR uses 45\%-70\% of the storage size used by DCSC
+for large real-world graphs (Table \ref{graphs}).
 
 \begin{figure}
 	\begin{center}
@@ -127,7 +138,7 @@ In contrast, COO is more suitable for storing these
 single-entry rows. It does not increase the storage size but significantly
 reduces the number of conditional jump instructions. As a result, we combine
 SCSR with COO and store non-zero entries in the COO format behind the row headers
-of SCSR (Figure \ref{tile_format}).
+of SCSR (Figure \ref{sparse_mat}).
 
 %We organize tiles in a sparse matrix in tile rows and maintain a matrix index
 %for them. Each entry of the index stores the location of a tile row on SSDs
@@ -139,14 +150,18 @@ of SCSR (Figure \ref{tile_format}).
 
 \subsection{Dense matrices}
 In many applications, the dense matrices in SpMM are tall and skinny with
-millions or even billions of rows but only a small number of columns.
-The number of columns is determined by applications. In semi-external memory,
-we keep the input dense matrix in memory, so its size governs memory consumption
-of sparse matrix multiplication. To increase data locality in SpMM, the elements
-in the dense matrices are stored in row-major order.
+millions or even billions of rows and a small number of columns.
+The number of columns is determined by applications. Because many real-world graphs
+are very large and sparse, the dense matrices may be too large to fit in memory.
+Thus, for the general case of SpMM, we split the dense matrices into vertical
+partitions of the memory size. To increase data locality in SpMM, the elements
+in each vertical partition are stored in row-major order (Figure \ref{dense_mat}
+(a)). When performing SpMM in semi-external memory, we load the input dense
+matrix or one of its vertical partition to memory if it is not in memory yet.
 
 For a non-uniform memory architecture (NUMA), we partition the input dense matrix
-horizontally and store partitions evenly across NUMA nodes. The NUMA architecture
+or one of its vertical partitions horizontally and store horizontal partitions
+evenly across NUMA nodes (Figure \ref{dense_mat} (b)). The NUMA architecture
 is prevalent in today's multi-processor servers, where each processor connects
 to its own memory banks. Therefore, keeping partitions evenly across all NUMA
 nodes helps to fully utilize the bandwidth of memory and inter-processor links.
@@ -157,27 +172,38 @@ with bit operations. The row interval size is multiple of the tile size of
 a sparse matrix so that multiplication on a tile only needs to access rows
 from a single row interval.
 
-%\begin{figure}
-%\centering
-%\includegraphics[scale=0.4]{./dense_matrix.pdf}
-%\caption{The data layout of tall-and-skinny dense matrices. It is partitioned
-%	horizontally into many row intervals.
-%(a) In the input dense matrix of SpMM, row intervals are stored across NUMA nodes and
-%elements are stored in the row-major order; (b) in the eigensolver, elements
-%in a dense matrix inside a row interval are stored in the column-major order;
-%(c) in NMF, a dense matrix is partitioned vertically first and in each partition,
-%elements are stored in the row-major order.}
-%\label{dense_mat}
-%\end{figure}
+\begin{figure}
+\centering
+\includegraphics[scale=0.4]{SpMM_figs/dense_matrix.pdf}
+\caption{The format of the dense matrices in SpMM. It is first partitioned
+vertically so that each vertical partition can fit in memory. A vertical
+partition stores data in row-major order. When a vertical partition is loaded
+to NUMA memory, it is partitioned horizontally into many row intervals and
+is stored across NUMA nodes.}
+\label{dense_mat}
+\end{figure}
 
 \subsection{Parallel Execution} \label{sec:exec}
 This section describes parallel execution of sparse matrix multiplication
 in semi-external memory. Memory is precious resource in this computation model
 because memory should be used to keep more columns in the input dense matrix
-to reduce I/O from SSDs (as discussed in Section \ref{sec:mem}).
+to reduce I/O from SSDs (as discussed in Section \ref{sec:spmm:mem}).
 As such, we deploy only computation optimizations with a small memory footprint.
+Algorithm \ref{alg:spmm} and Figure \ref{spmm_exec} illustrate the execution of
+sparse matrix multiplication in semi-external memory.
 %and the power-law distribution of non-zero entries in each row of a sparse
 %matrix.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.3]{SpMM_figs/SpMM_exec.pdf}
+\caption{The execution of multiplication on tiles in a sparse matrix and
+	the input dense matrix in a single thread. The tiles are organized into super
+	tiles. A thread reads one super tile row at a time and multiplies
+	the super tile row with the input dense matrix. The arrows indicate
+the order of multiplication on tiles with the input dense matrix.}
+\label{spmm_exec}
+\end{figure}
 
 Semi-external memory favors horizontal partitioning on a sparse matrix
 for parallelization because this partitioning scheme minimizes writes to SSDs
@@ -337,7 +363,7 @@ For accessing a sparse matrix, tile rows usually have different sizes, so we res
 a previously allocated memory buffer if it is too small for a new I/O request.
 
 \subsection{The impact of the memory size on I/O}
-\label{sec:mem}
+\label{sec:spmm:mem}
 More memory reduces I/O in semi-external memory.
 The minimum memory requirement for semi-external memory sparse matrix
 multiplication is $n c + t \epsilon$, where $n$ is the number of rows
@@ -350,10 +376,7 @@ complete the computation. Reducing memory consumption is essential
 to achieve performance in semi-external memory. By keeping more columns of
 the input dense matrix in memory, we reduce the number of I/O passes.
 
-When a machine does not have sufficient memory to keep the entire input dense
-matrix, we use the existing memory to keep as many columns in the input
-dense matrix in memory as possible. Although we can use some memory to cache
-part of the sparse matrix,
+Although we can use some memory to cache part of the sparse matrix,
 keeping more columns of the input dense matrix in memory saves more I/O than
 using the same amount of memory to cache the sparse matrix. Assume the input
 dense matrix has $n$ rows and $k$ columns. Again, $c$ is the element size
@@ -391,6 +414,11 @@ affect its performance.
 \subsection{I/O complexity}
 The semi-external memory (SEM) solution for sparse matrix multiplication leads
 to no more I/O than the external-memory (EM) solution for many real-world graphs.
+The EM solution has both the sparse matrix and the input dense matrix on SSDs,
+and only loads part of the matrices during computation. Writing data to SSDs
+causes SSD wearout. The SEM solution minimizes writes to SSDs. To minimize writes,
+the EM solution scans the sparse matrix once but reads the input dense matrix
+multiple times.
 
 When a machine has sufficient memory to keep the entire input dense matrix
 in memory, the SEM solution only needs to read the sparse matrix and the input
@@ -406,8 +434,6 @@ In this case, the SEM solution scans the sparse matrix multiple times.
 \begin{equation*}
 read_{SEM} = \frac{n c k}{M} E + n c k
 \end{equation*}
-To minimize writes, the EM solution
-scans the sparse matrix once but reads the input dense matrix multiple times.
 Due to near random vertex connection in real-world graphs, the EM solution needs to
 read the entire input dense matrix each time. In the parallel setting,
 the EM solution requires each thread to keep local memory buffers for portions
@@ -434,7 +460,7 @@ in memory and leads to the minimum I/O. For a relatively larger $k$, $E < n c k 
 holds for most of natural graphs when the graphs are processed in a large
 parallel machine. Therefore, the SEM solution usually performs less I/O than EM.
 
-\section{Applications} \label{sec:apps}
+\section{Applications} \label{sec:spmm:apps}
 We apply sparse matrix multiplication to three important applications widely
 used in data mining and machine learning: PageRank \cite{pagerank},
 eigensolver \cite{anasazi} and non-negative matrix factorization \cite{nmf}.
@@ -533,7 +559,7 @@ H_{a\mu} \leftarrow H_{a\mu} \frac{{(W^TA)}_{a\mu}}{{(W^TWH)}_{a\mu}},
 W_{ia} \leftarrow W_{ia} \frac{{(AH^T)}_{ia}}{{(WHH^T)}_{ia}}
 \end{equation*}
 
-We apply SEM sparse matrix multiplication to NMF differently
+We apply SEM-SpMM to NMF differently
 based on the memory size and the number of columns in $W$ and $H$. Due to
 the sparsity of a graph, $W$ and $H$ may require storage as large as
 the sparse matrix and can no longer fit in
