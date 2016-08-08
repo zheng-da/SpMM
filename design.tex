@@ -315,10 +315,7 @@ width in the code.
 
 \subsection{I/O optimizations}
 Semi-external memory sparse matrix multiplication streams a sparse matrix from
-SSDs, which results in sequential I/O. This I/O access pattern does not generate
-any cache hits in the Linux page cache when the sparse matrix size is larger
-than main memory. As such, we access a sparse matrix on SSDs with direct I/O.
-For accessing data in fast SSDs sequentially, the overhead of operating systems
+SSDs. When we access fast SSDs sequentially, the overhead of operating systems
 such as thread context switch and memory allocation becomes noticeable.
 We tackle these obstacles to maximize I/O throughput.
 
@@ -345,9 +342,8 @@ a previously allocated memory buffer if it is too small for a new I/O request.
 
 \subsection{The impact of the memory size on I/O}
 \label{sec:spmm:mem}
-More memory reduces I/O in semi-external memory.
-The minimum memory requirement for semi-external memory sparse matrix
-multiplication is $n c + t \epsilon$, where $n$ is the number of rows
+More memory reduces I/O in semi-external memory. The minimum memory requirement
+for SEM-SpMM is $n c + t \epsilon$, where $n$ is the number of rows
 of the input dense matrix, $c$ is the element size in bytes,
 $t$ is the number of threads processing the sparse matrix
 and $\epsilon$ is the buffer size for the sparse matrix and the output
@@ -357,7 +353,7 @@ complete the computation. Reducing memory consumption is essential
 to achieve performance in semi-external memory. By keeping more columns of
 the input dense matrix in memory, we reduce the number of I/O passes.
 
-Although we can use some memory to cache part of the sparse matrix,
+Although we can use some memory to cache part of a sparse matrix,
 keeping more columns of the input dense matrix in memory saves more I/O than
 using the same amount of memory to cache the sparse matrix. Assume the input
 dense matrix has $n$ rows and $p$ columns. Again, $c$ is the element size
@@ -393,13 +389,13 @@ affect its performance.
 %to SSDs.
 
 \subsection{I/O complexity}
-The semi-external memory (SEM) solution for sparse matrix multiplication leads
+The semi-external memory (SEM) solution for SpMM leads
 to no more I/O than the external-memory (EM) solution for many real-world graphs.
 The EM solution has both the sparse matrix and the input dense matrix on SSDs,
 and only loads part of the matrices during computation. Writing data to SSDs
-causes SSD wearout. The SEM solution minimizes writes to SSDs. To minimize writes,
-the EM solution scans the sparse matrix once but reads the input dense matrix
-multiple times.
+causes SSD wearout. As such, we compare the two solutions that minimize writes
+to SSDs. %To minimize writes, the EM solution scans the sparse matrix once but
+%reads the input dense matrix multiple times.
 
 When a machine has sufficient memory to keep the entire input dense matrix
 in memory, the SEM solution only needs to read the sparse matrix and the input
@@ -443,17 +439,16 @@ parallel machine. Therefore, the SEM solution usually performs less I/O than EM.
 
 \section{Applications} \label{sec:spmm:apps}
 We apply sparse matrix multiplication to three important applications widely
-used in data mining and machine learning: PageRank \cite{pagerank},
+used in graph analysis and machine learning: PageRank \cite{pagerank},
 eigensolver \cite{anasazi} and non-negative matrix factorization \cite{nmf}.
-Each application demonstrates a different strategy of using memory for sparse
-matrix multiplication.
+Each application demonstrates a different strategy of using memory for SpMM.
 
 \subsection{PageRank} \label{sec:pagerank}
 PageRank is an algorithm to rank the Web pages by using hyperlinks between Web
 pages. It was first used by Google and is identified as one of the top 10 data
 mining algorithms \cite{top10}. PageRank is a representative of a set of graph
-algorithms that can be expressed with sparse matrix multiplication or generalized
-sparse matrix multiplication. Other important examples are label propagation
+algorithms that can be expressed with SpMM or generalized SpMM, in which
+the dense matrices have only one column. Other important examples are label propagation
 \cite{label_prop} and belief propagation \cite{Yedidia03}. The algorithm runs
 iteratively and its update rule for each Web pages in an iteration is
 \begin{equation*}
@@ -496,22 +491,17 @@ multiplication. Many algorithms \cite{Lanczos, IRLM, krylovschur} and frameworks
 problem.
 
 We take advantage of the Anasazi eigensolver framework \cite{anasazi} and
-replace its original matrix operations with our SEM sparse
-matrix multiplication and external-memory dense matrix operations. To compute
-eigenvalues of a $n \times n$ matrix, many eigenvalue algorithms for a large
-sparse matrix require to construct a vector subspace with a sequence of
-sparse matrix multiplications and each vector in the subspace has the length of $n$.
-Due to the sparsity of real-world graphs, the vector subspace is large and we keep
-vectors in the subspace on SSDs. In addition to sparse matrix
-multiplication, eigensolvers perform some dense matrix operations on the subspace.
-For example, eigensolvers need to orthogonalize the vectors in the subspace with
-dense matrix multiplication. The Anasazi eigensolvers have block extension to
-update multiple vectors in the subspace simultaneously, which results in sparse matrix dense
+replace its original matrix operations with our SEM-SpMM. To compute eigenvalues
+of a $n \times n$ sparse matrix, many eigenvalue algorithms construct a vector
+subspace with a sequence of sparse matrix multiplications and each vector in
+the subspace has the length of $n$. Due to the sparsity of real-world graphs,
+the vector subspace is large and we keep the vectors on SSDs.
+The Anasazi eigensolvers have block extension to update multiple vectors in
+the subspace simultaneously, which results in sparse matrix dense
 matrix multiplication. The most efficient Anasazi eigensolver on sparse graphs
 is the KrylovSchur eigensolver \cite{krylovschur}, which updates a small number
 of vectors (1-4) in the subspace simultaneously. Zheng et al.
-\cite{flasheigen} provides the details of extending the Anasazi eigensolver
-with external-memory matrix operations.
+\cite{flasheigen} provides the details of extending the Anasazi eigensolver.
 
 %The choice of data placement for an eigensolver is a little different from
 %PageRank. If a machine has a small amount of memory, the memory should be
