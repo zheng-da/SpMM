@@ -1,15 +1,15 @@
 \section{Experimental Evaluation}
 
 We evaluate the performance of our SEM-SpMM on multiple real-world billion-scale
-graphs including a web-page
-graph with 3.4 billion vertices. We first measure the performance of our
-semi-external memory implementation and compare it with multiple in-memory
-implementations: \textit{(i)} our in-memory implementation, \textit{(ii)} MKL
-(\textit{mkl\_dcsrmm}) and \textit{(iii)} Trilinos Tpetra. We also demonstrate
-the effectiveness of
-CPU and I/O optimizations on sparse matrix multiplication.
-We then evaluate the overall performance of the applications in Section
-\ref{sec:spmm:apps} and demonstrate the impact of the memory size on the applications.
+graphs including a web-page graph with 3.4 billion vertices. We first measure
+the performance of SEM-SpMM and compare it with our in-memory implementation
+(IM-SpMM), which is simply the SEM-SpMM implementation with the sparse matrix
+in memory.
+We also compare SEM-SpMM with state-of-the-art in-memory implementations in
+Intel MKL (\textit{mkl\_dcsrmm}) and Trilinos Tpetra. We use Intel MKL 2015
+and Trilinos v12.0.1 for the experiments. We demonstrate the effectiveness of
+CPU and I/O optimizations on SEM-SpMM and evaluate the overall performance
+of the applications in Section \ref{sec:spmm:apps}.
 
 We conduct experiments on a non-uniform memory architecture machine with
 four Intel Xeon E7-4860 processors, clocked at 2.6 GHz, and 1TB memory of
@@ -31,6 +31,8 @@ Twitter \cite{twitter} & $42$M & $1.5$B & Yes \\
 \hline
 Friendster \cite{friendster} & $65$M & $1.7$B & No \\
 \hline
+%KNN graph \cite{} & $65$M & $6.5$B & No \\
+%\hline
 Page graph \cite{web_graph} & $3.4$B & $129$B & Yes \\
 \hline
 RMAT-40 \cite{rmat} & 100M & 3.7B & Yes \& No \\
@@ -58,21 +60,10 @@ datasets are generated with the RMAT implementation in the \textit{boost}
 library\footnote{We use the parameters of $a=0.57$, $b=0.19$, $c=0.19$,
 $d=0.05$.}. We always use the undirected version of the synthetic graphs for
 the performance evaluation of sparse matrix multiplication. The Page graph is
-clustered by domain.
+clustered by domain. The MKL and Tpetra implementations cannot run on the Page
+graph because its size exceeds the memory capacity of our NUMA machine.
 
-\subsection{The performance of sparse matrix multiplication}
-
-We evaluate the performance of our semi-external memory implementation (SEM-SpMM)
-and compare its performance with other state-of-the-art in-memory implementations,
-including the ones in Intel MKL and Trilinos Tpetra, on the graphs in Table
-\ref{graphs}. In addition, we measure the performance of our SEM-SpMM when
-the sparse matrix is stored in memory (IM-SpMM) to investigate the performance
-penalty of scaling SpMM with SSDs. The MKL and Tpetra
-implementations cannot run on the Page graph because its size exceeds the memory
-capacity of our NUMA machine. We use Intel MKL 2015 and Trilinos v12.0.1 for
-the experiments.
-
-\subsubsection{SEM-SpMM vs. IM-SpMM}
+\subsection{SEM-SpMM vs. IM-SpMM}
 
 \begin{figure}
 	\footnotesize
@@ -99,9 +90,9 @@ the experiments.
 	\label{perf:spmm_IM_vs_SEM}
 \end{figure}
 
-We first compare the performance of SEM-SpMM against IM-SpMM on all graphs with
-the input and output dense matrices stored in memory. In this case, the dense
-matrices involved in SpMM have a small number of columns.
+We compare the performance of SEM-SpMM with IM-SpMM to investigate
+the performance penalty of scaling SpMM with SSDs. In this case, the dense
+matrices have a small number of columns and are stored in memory. 
 
 There is only a small performance penalty for semi-external memory (Figure
 \ref{perf:spmm_comp}). The performance gap between IM-SpMM and SEM-SpMM
@@ -118,13 +109,14 @@ the bottleneck of the system (Figure \ref{perf:spmm_IO}). SpMV on the Page
 graph saturates the I/O bandwidth of SSDs and is clearly bottlenecked by I/O.
 SpMV on other graphs (except Twitter) also generates high I/O throughput,
 which consumes memory bandwidth and potentially interferes with random memory
-access in SpMV. SEM-SpMV on Twitter takes about 0.5 second to complete and
-thus, the startup overhead has significant impact on the average I/O throughput.
+access in SpMV. SEM-SpMV on the Twitter graph takes about 0.5 second to
+complete and,
+thus, startup overhead has significant impact on the average I/O throughput.
 As the number of columns in the dense matrix increases, SpMM becomes more CPU
 bound. For all graphs, SEM-SpMM requires a very small number of columns to
 become CPU-bound and achieve close to 100\% performance of IM-SpMM.
 
-\subsubsection{SEM-SpMM vs. other in-memory SpMM}
+\subsection{SEM-SpMM vs. other in-memory SpMM}
 In this section, we compare SEM-SpMM with the Intel MKL and Trilinos Tpetra
 implementations. Intel MKL runs on shared-memory machines. Trilinos Tpetra can run in
 both shared memory and distributed memory, so we measure its performance in
@@ -238,7 +230,7 @@ better on real-world graphs is that these graphs are more likely to cause
 load imbalance. Our SpMM implementation balances load much better than
 distributed implementations that partition data.
 
-\subsubsection{SEM-SpMM with a large input dense matrix}
+\subsection{SEM-SpMM with a large input dense matrix}
 
 We further measure the performance of SEM-SpMM with a large input dense matrix,
 in which neither the sparse matrix nor the dense matrices can fit in memory.
@@ -323,9 +315,9 @@ multiplication and all optimizations together speed up SpMM by $3-5$ times
 (Figure \ref{perf:spmm_opt}). The degree of effectiveness
 varies between different graphs and different numbers of columns in
 the dense matrices. The largest performance boost is from cache blocking,
-especially for SpMV.
-This is expected because the main overhead of SpMV comes from random memory
-access and cache blocking significantly increases CPU cache hits to reduce
+especially for SpMV. This is expected because these graphs have near-random
+vertex connection, which leads many random memory access in sparse matrix
+multiplication. Cache blocking significantly increases CPU cache hits to reduce
 random memory access. CPU vectorization is only effective on SpMM because
 it optimizes computation on a row of the dense matrix.
 %For example, the NUMA optimization is more effective when
@@ -382,8 +374,8 @@ speedup. The Page graph, on the other hand, is well clustered and DCSR already
 achieves a small storage size. SCSR further reduces the storage size, but is
 less significant. SpMV on the Page graph has less random memory access and is
 I/O-bound even on a large SSD array. \textit{Buf-pool} and \textit{IO-poll}
-increases I/O throughput and, thus, improves performance. In contrast,
-SEM-SpMV with SCSR on the Friendster graph already achieves almost 80\% of
+increases I/O throughput and, thus, improves performance. In contrast, SEM-SpMV
+with the Friendster graph in the SCSR format already achieves almost 80\% of
 IM-SpMV and, thus, further I/O optimizations have less noticeable speedup.
 
 \subsection{Performance of the applications}
@@ -391,7 +383,7 @@ IM-SpMV and, thus, further I/O optimizations have less noticeable speedup.
 We evaluate the performance of our implementations of the applications in
 Section \ref{sec:spmm:apps}. We show the effectiveness of additional memory for
 these applications and compare their performance with state-of-the-art
-implementations on smaller graphs.
+implementations.
 
 \subsubsection{PageRank}
 We evaluate the performance of our SpMM-based PageRank implementation
@@ -409,11 +401,8 @@ PageRank on the Page graph. We use FlashGraph v0.3 and a trial version of
 GraphLab Create v1.9.
 
 SpMM-PageRank in memory and in semi-external memory both significantly outperform
-the implementations in FlashGraph and GraphLab Create (Figure \ref{perf:pagerank})
-even though FlashGraph computes approximate PageRank and GraphLab Create runs
-completely in memory. The main computation of PageRank is to access PageRank
-values from neighbor vertices, which is essentially the same computation in
-sparse matrix vector multiplication. Our SpMM is highly optimized for both CPU
+the implementations in FlashGraph and GraphLab Create (Figure \ref{perf:pagerank}).
+Our SpMM is highly optimized for both CPU
 and I/O. Even though SpMM-PageRank performs more computation than FlashGraph,
 it performs the computation much more efficiently and
 reads less data from SSDs than FlashGraph. SpMM-PageRank and the implementation
