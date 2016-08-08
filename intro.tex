@@ -11,15 +11,15 @@ the algorithms, such as PageRank and SVD, require sparse matrix vector
 multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
 
-The largest sparse matrices arise from graph datasets such as social networks
-and Web graphs, in which one performs sparse matrix multiplication for graph
+We focus on sparse matrices derived from graphs because the largest sparse
+matrices arise from graph datasets such as social networks and Web graphs.
+For example, Facebook's social network has billions of vertices and
+today's Web graphs are even much larger. These matrices inherit structure
+from natural graphs. They are typically very sparse and have near-random
+distribution for non-zero entries. They also have a power law distribution
+that governs the number of non-zero entries per row and column.
+We perform sparse matrix multiplication for graph
 analysis such as community detection with NMF and spectral analysis with SVD.
-For example, Facebook's social network has billions of vertices and today's
-Web graphs are even much larger. 
-These matrices inherit structure from natural graphs. Specifically,
-these matrices are typically very sparse and have near-random distribution
-for non-zero entries. They also have a power law distribution that governs
-the number of non-zero entries per row and column.
 
 % Why is it hard?
 
@@ -28,13 +28,13 @@ multiplication. This operation has very low computation density and its
 performance is limited by memory access. As such, it usually achieves only
 a small fraction of the peak performance of a modern processor \cite{Williams07}.
 
-Sparse matrices encoding real-world graphs impose additional challenges in
+Sparse matrices derived from graphs impose additional challenges in
 this operation. Many graphs have power-law distribution in vertex
 degree, which causes load imbalance in sparse matrix multiplication. These
 sparse matrices are also much sparser and have more random distribution of
 non-zero entries than traditional sparse matrices that arise from scientific
-computing. As such, optimizations such as register blocking and prefetching
-for traditional sparse matrices \cite{Williams07} increase storage size,
+computing. As such, many optimizations for traditional sparse matrices such
+as register blocking and prefetching \cite{Williams07} increase storage size,
 bring more data to CPU cache unnecessarily and hurt performance.
 The commonly used sparse matrix storage formats such as CSR (compressed sparse
 row) and CSC (compressed sparse column) leads to significant CPU cache misses
@@ -120,9 +120,10 @@ memory. As such, the minimum memory requirement of our solution is $O(n)$,
 where $n$ is the number of rows in the input dense matrix. By keeping more columns
 in the dense matrix in memory, we reduce I/O from SSDs in SpMM. When the number
 of columns in a dense matrix increases, SEM-SpMM becomes CPU bound, instead of
-I/O bound on fast SSDs.
+I/O bound, on fast SSDs.
 
-We develop three important applications in scientific computing and data mining
+We develop three important applications in scientific computing and graph
+analysis
 with our SEM-SpMM: PageRank \cite{pagerank}, eigensolver \cite{anasazi} and
 non-negative matrix factorization \cite{nmf}. Each of them requires SpMM with
 different numbers of columns in dense matrices, resulting in different
@@ -134,28 +135,38 @@ and the impact of the memory size on the performance of the applications.
 
 In summary, the main contributions of this paper are:
 \begin{itemize}
-	\item We scale SpMM in semi-external memory and explore runtime optimizations
-		that meet memory constraints of semi-external memory to reduce CPU cache
-		misses and remote memory access in a NUMA machine.
+	\item We scale SpMM in semi-external memory with SSDs and tailor runtime
+		optimizations that meet memory constraints in the semi-external memory
+		setting and asymmetric I/O access of SSDs.
 	\item We deploy a very compact sparse matrix format to reduce the amount of
 		I/O and alleviate I/O as the bottleneck of the system.
-	\item We enable fine-grained dynamic scheduling to balance load when sparse
-		matrices have power-law distribution for non-zero entries.
+	\item We deploy a fine-grain dynamic load balancing scheme for sparse
+		matrices with power-law distribution in non-zero entries.
 	\item We optimize SpMM for dense matrices with various numbers of columns
 		and extends SEM-SpMM to large dense matrices that cannot fit in memory
 		by vertically partitioning the dense matrices.
+	\item We demonstrate that SpMM in semi-external memory, coupled with SSDs,
+		meets or even exceeds the performance of highly optimized in-memory
+		implementations. Our SEM-SpMM achieves almost 100\% performance of our
+		in-memory implementation on a large parallel machine. Even for SpMV,
+		our SEM implementation achieves at least 65\% performance of our
+		in-memory implementation and outperforms Trilinos \cite{trilinos} and
+		MKL \cite{mkl} by a factor of $2-9$.
+	\item The applications implemented with our SpMM significantly outperform
+		the state-of-the-art implementations of these applications.
+	\item The code of this work is released as open source at http://flashx.io.
 \end{itemize}
 
-Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
-100\% performance of our in-memory implementation on a large parallel machine
-with 48 CPU cores when the dense matrix has more than four columns. Even for
-SpMV, our SEM implementation achieves at least 65\% performance of our in-memory
-implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
-a factor of $2-9$. The applications implemented with our SpMM significantly
-outperform the state-of-the-art implementations of these applications. As such,
-we conclude that semi-external memory coupled with SSDs delivers an efficient
-solution for large-scale sparse matrix multiplication. It serves
-as a building block and offers new design possibilities for large-scale
-data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
-and processing bigger problems on fewer machines. The code of this work is
-released as open source at http://flashx.io.
+%Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
+%100\% performance of our in-memory implementation on a large parallel machine
+%with 48 CPU cores when the dense matrix has more than four columns. Even for
+%SpMV, our SEM implementation achieves at least 65\% performance of our in-memory
+%implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
+%a factor of $2-9$. The applications implemented with our SpMM significantly
+%outperform the state-of-the-art implementations of these applications. As such,
+%we conclude that semi-external memory coupled with SSDs delivers an efficient
+%solution for large-scale sparse matrix multiplication. It serves
+%as a building block and offers new design possibilities for large-scale
+%data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
+%and processing bigger problems on fewer machines. The code of this work is
+%released as open source at http://flashx.io.
