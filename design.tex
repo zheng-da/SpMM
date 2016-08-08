@@ -31,10 +31,10 @@ are often the bottleneck.
 
 Traditional sparse matrix formats such as compressed row storage (CSR) and
 compressed column storage (CSC) are not designed for graphs. Graphs are sparse
-and very large so the dense matrix involved in SpMM is too large to fit in CPU cache.
-Furthermore, graphs usually have near-random vertex connection. These two formats
-lead to random access to rows in a large dense matrix in sparse matrix
-multiplication and causes
+and very large so the dense matrix involved in SpMM is too large to fit in CPU
+cache. Furthermore, graphs usually have near-random vertex connection, which
+leads to random access to rows in a large dense matrix in sparse matrix
+multiplication. As such, these two formats cause
 many CPU cache misses. In addition, these two formats also require a large
 storage size. For a sparse matrix with billions of non-zero entries, we have to
 use eight bytes to store row and column indices.
@@ -95,14 +95,14 @@ a matrix. Because the most significant bit is used to indicate the beginning
 of a row, this format allows a maximum tile size of $32K \times 32K$.
 
 SCSR is much more compact than DCSC \cite{Buluc08}. For a tile with $nnr$
-non-zero rows (rows with at least one non-zero entry) and $nnz$ non-zero entries,
+non-empty rows and $nnz$ non-zero entries,
 SCSR requires $2 \times nnr$ bytes for row ids, $2 \times nnz$ bytes for column
 indices of non-zero entries and $c \times nnz$ bytes for non-zero values, where
 $c$ is the number of
 bytes for a non-zero value. As such, $S_{SCSR} = 2 \times nnr + (2 + c) \times nnz$.
 In contrast, DCSC requires much more metadata for a tile
-with $nnc$ non-zero columns and $nnz$ non-zero entries.
-$S_{DCSC} = (2 + 2 + 4) \times nnc + (2 + c) \times nnz$ bytes. In a $t \times t$
+with $nnc$ non-empty columns and $nnz$ non-zero entries.
+$S_{DCSC} = (2 + 2 + 4) \times nnc + (2 + c) \times nnz$. In a $t \times t$
 tile, $nnr \le nnz \le nnr \times t$. On average, $nnr \approx nnc$ in most sparse
 matrices. As such, for a binary sparse matrix, $0.4 \le S_{SCSR} / S_{DCSC} < 1$.
 SCSR saves more space in a sparse matrix with larger $nnr / nnz$. Figure
@@ -149,7 +149,7 @@ Thus, for the general case of SpMM, we split the dense matrices into vertical
 partitions of the memory size. To increase data locality in SpMM, the elements
 in each vertical partition are stored in row-major order (Figure \ref{dense_mat}
 (a)). When performing SpMM in semi-external memory, we load the input dense
-matrix or one of its vertical partition to memory if it is not in memory yet.
+matrix or one of its vertical partitions to memory if it is not in memory yet.
 
 For a non-uniform memory architecture (NUMA), we partition the input dense matrix
 or one of its vertical partitions horizontally and store horizontal partitions
@@ -157,9 +157,8 @@ evenly across NUMA nodes (Figure \ref{dense_mat} (b)). The NUMA architecture
 is prevalent in today's multi-processor servers, where each processor connects
 to its own memory banks. Therefore, keeping partitions evenly across all NUMA
 nodes helps to fully utilize the bandwidth of memory and inter-processor links.
-We assign multiple contiguous rows in a row interval to a NUMA node. A row interval
-always has $2^i$ rows for efficiently locating a row
-with bit operations. The row interval size is multiple of the tile size of
+We assign multiple contiguous rows in a row interval with $2^i$ rows to
+a NUMA node. The row interval size is multiple of the tile size of
 a sparse matrix so that multiplication on a tile only needs to access rows
 from a single row interval.
 
@@ -205,7 +204,7 @@ the local memory buffers. As such, we write the output matrix at most once
 to SSDs and there are no remote memory writes.
 In contrast, both vertical partitioning and 2D partitioning require each
 thread to maintain a local memory buffer for the same tile rows in order
-to reduce writes to SSDs and remote memory.
+to reduce writes to SSDs and remote memory, which increases memory consumption.
 
 \begin{algorithm}
 	\algblock{ParFor}{EndParFor}
@@ -272,8 +271,8 @@ to reduce writes to SSDs and remote memory.
 	\end{algorithmic}
 \end{algorithm}
 
-We deploy a fine-grain dynamic load balancing for parallel computation with
-a global task queue \textit{trQ} (in Algorithm \ref{alg:spmm}). Each thread
+We deploy a fine-grain dynamic load balancing scheme for parallel computation
+with a global task queue \textit{trQ} (in Algorithm \ref{alg:spmm}). Each thread
 gets one computation task (tile rows) at a time from \textit{trQ} with
 \textit{get\_tile\_rows} and perform computation (\textit{MulTRows}).
 At the beginning, a thread gets larger computation tasks that contains multiple
