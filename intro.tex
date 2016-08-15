@@ -76,10 +76,7 @@ columns of a dense matrix are kept in memory and the sparse matrix is accessed
 from external memory. In semi-external memory, we assume
 that the memory of a machine is sufficient to keep at least one column
 of the input dense matrix but is insufficient to hold the sparse matrix
-and the dense matrices. Even though SpMM could be implemented with
-SpMV, such an implementation would fail to explore data locality in SpMM and
-result in higher I/O access in semi-external memory. We optimize SpMM directly
-to overcome these problems. Given fast SSDs, we demonstrate that the SEM
+and the dense matrices. Given fast SSDs, we demonstrate that the SEM
 solution uses the resources of a multi-core machine well and
 achieves performance comparable to state-of-the-art in-memory implementations
 while increasing the scalability in proportion
@@ -133,40 +130,40 @@ and the impact of the memory size on the performance of the applications.
 
 % What are it's key features?
 
-In summary, the main contributions of this paper are:
+The main contributions of this paper are:
 \begin{itemize}
 	\item We scale SpMM in semi-external memory with SSDs and tailor runtime
 		optimizations that meet memory constraints in the semi-external memory
 		setting and asymmetric I/O access of SSDs.
-	\item We deploy a very compact sparse matrix format to reduce the amount of
+	\item We deploy a compact sparse matrix format to reduce the amount of
 		I/O and alleviate I/O as the bottleneck of the system.
 	\item We deploy a fine-grain dynamic load balancing scheme for sparse
 		matrices with power-law distribution in non-zero entries.
 	\item We optimize SpMM for dense matrices with various numbers of columns
 		and extends SEM-SpMM to large dense matrices that cannot fit in memory
 		by vertically partitioning the dense matrices.
-	\item We demonstrate that SpMM in semi-external memory, coupled with SSDs,
-		meets or even exceeds the performance of highly optimized in-memory
-		implementations. Our SEM-SpMM achieves almost 100\% performance of our
-		in-memory implementation on a large parallel machine. Even for SpMV,
-		our SEM implementation achieves at least 65\% performance of our
-		in-memory implementation and outperforms Trilinos \cite{trilinos} and
-		MKL \cite{mkl} by a factor of $2-9$.
-	\item The applications implemented with our SpMM significantly outperform
-		the state-of-the-art implementations of these applications.
-	\item The code of this work is released as open source at http://flashx.io.
+%	\item We demonstrate that SpMM in semi-external memory, coupled with SSDs,
+%		meets or even exceeds the performance of highly optimized in-memory
+%		implementations. Our SEM-SpMM achieves almost 100\% performance of our
+%		in-memory implementation on a large parallel machine. Even for SpMV,
+%		our SEM implementation achieves at least 65\% performance of our
+%		in-memory implementation and outperforms Trilinos \cite{trilinos} and
+%		MKL \cite{mkl} by a factor of $2-9$.
+%	\item The applications implemented with our SpMM significantly outperform
+%		the state-of-the-art implementations of these applications.
+%	\item The code of this work is released as open source at http://flashx.io.
 \end{itemize}
 
-%Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
-%100\% performance of our in-memory implementation on a large parallel machine
-%with 48 CPU cores when the dense matrix has more than four columns. Even for
-%SpMV, our SEM implementation achieves at least 65\% performance of our in-memory
-%implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
-%a factor of $2-9$. The applications implemented with our SpMM significantly
-%outperform the state-of-the-art implementations of these applications. As such,
-%we conclude that semi-external memory coupled with SSDs delivers an efficient
-%solution for large-scale sparse matrix multiplication. It serves
-%as a building block and offers new design possibilities for large-scale
-%data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
-%and processing bigger problems on fewer machines. The code of this work is
-%released as open source at http://flashx.io.
+Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
+100\% performance of our in-memory implementation on a large parallel machine
+with 48 CPU cores when the dense matrix has more than four columns. Even for
+SpMV, our SEM implementation achieves at least 65\% performance of our in-memory
+implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
+a factor of $2-9$. The applications implemented with our SpMM significantly
+outperform the state-of-the-art implementations of these applications. As such,
+we conclude that semi-external memory coupled with SSDs delivers an efficient
+solution for large-scale sparse matrix multiplication. It serves
+as a building block and offers new design possibilities for large-scale
+data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
+and processing bigger problems on fewer machines. The code of this work is
+released as open source at http://flashx.io.
