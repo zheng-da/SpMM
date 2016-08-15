@@ -1,6 +1,6 @@
 Recent sparse matrix multiplication studies focus on in-memory optimizations.
-Williams et al.~\cite{Williams07}
-describe optimizations for SpMV in multicore architectures. Yoo et al.~\cite{Yoo11}
+Williams et al.~\cite{Williams07} describe optimizations for sparse matrix
+vector multiplication (SpMV) in multicore architectures. Yoo et al.~\cite{Yoo11}
 and Boman et al.~\cite{Boman2013} optimize distributed SpMV for large
 scale-free graphs with 2D partitioning to reduce communication between
 machines. In contrast, Sparse matrix dense matrix multiplication (SpMM) receives
@@ -16,18 +16,17 @@ Compressed row storage (CSR) and compressed column storage (CSC) formats are com
 used sparse matrix formats in many numeric libraries such as Intel MKL \cite{mkl}
 and Trilinos \cite{trilinos}. However, these formats are not designed for graphs.
 Sparse matrix multiplication with these formats on graphs incurs many random memory
-accesses. More modern sparse matrix formats have been designed.
+accesses. Modern sparse matrix formats have been designed.
 Sparsity \cite{Im04} proposes both register blocking and cache blocking to
 increase data reuse in the CPU cache for sparse matrix multiplication. Register blocking
 requires explicit storage of zero values in register blocks. This strategy
-potentially wastes space and computation for graphs because graphs are very
+wastes space and computation for graphs because graphs are very
 sparse and have nearly random vertex connection. Buluc et al.~\cite{Buluc08}
 further advance sparse matrix format
 by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
 partitioning on a sparse matrix. This format significantly reduces the storage
-size of a 2D-partitioned sparse matrix. We adopt some of the optimizations
-and further advance the sparse matrix
-format with a focus on reducing the storage size of a sparse matrix.
+size of a 2D-partitioned sparse matrix. We reduce the storage size of a sparse
+matrix.
 
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
 framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
@@ -55,34 +54,28 @@ and expresses graph algorithms as a generalized form of sparse matrix-vector
 multiplication. GBase \cite{gbase} is a graph database built on MapReduce.
 It optimizes the graph storage for graph queries and analysis and perform graph
 queries and analysis with sparse matrix vector multiplication.
-Other works \cite{Liao14, Yin14, Liu10} implement non-negative matrix
-factorization (NMF) with MapReduce. Although these MapReduced-based
-implementations can scale to very large graphs, they typically run orders of
-magnitude more slowly than optimized solutions due to the overhead from
+Other work \cite{Liao14, Yin14, Liu10} implement non-negative matrix
+factorization (NMF) with MapReduce. Although these MapReduce-based
+implementations can scale to very large graphs, they run orders of
+magnitude more slowly than optimized solutions, owing to the overhead from
 MapReduce.
 
 Zhou et al.~\cite{Zhou12} implement an LOBPCG \cite{Arbenz05} eigensolver in
 an SSD cluster. Their implementation targets nuclear many-body Hamiltonian
 matrices, which are much denser and have smaller dimensions than many sparse
 graphs. Therefore, their solution stores the sparse matrix on SSDs and keep
-the entire vector subspace in RAM. They focus on optimizations
-in the distributed environment. In contrast, our SEM-SpMM handles dense matrices
-of different sizes and our eigensolver stores both
-the sparse matrix and the vector subspace on SSDs due to the large number
-of vertices in our target graphs. We focus on external-memory optimizations
-in a single machine.
+the entire vector subspace in RAM. In contrast, our SEM-SpMM handles dense
+matrices of different sizes and our eigensolver stores both the sparse matrix
+and the vector subspace on SSDs.
 
 Anasazi \cite{anasazi} is an eigensolver framework in the Trilinos project
 \cite{trilinos}. This framework implements block extension of multiple
 eigensolver algorithms such as Block Krylov-Schur \cite{krylovschur},
-Block Davidson \cite{Arbenz05} and LOBPCG \cite{Arbenz05}.
-This is a very flexible framework
-that allows users to redefine sparse matrix dense matrix multiplication and
-dense matrix operations. By default, Anasazi uses the matrix implementations
-in Trilinos that runs in distributed memory.
+Block Davidson \cite{Arbenz05} and LOBPCG \cite{Arbenz05}. Anasazi uses
+the matrix implementations in Trilinos that runs in distributed memory.
 
 Intel Math Kernel Library \cite{mkl} is an efficient and parallel linear
-algebra library with matrix operations specifically optimized for Intel
-platforms. It provides an efficient sparse matrix multiplication optimized
+algebra library with matrix operations optimized for Intel
+platforms. It provides an efficient sparse matrix multiplication
 for regular sparse matrices. In contrast, our sparse matrix multiplication
 optimizes for power-law graphs with near-random vertex connection.
