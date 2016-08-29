@@ -493,12 +493,12 @@
 % in the abstract or keywords.
 \IEEEtitleabstractindextext{%
 \begin{abstract}
-Owing to random memory access patterns, sparse matrix multiplication is
+Sparse matrix multiplication is
 traditionally performed in memory and scales to large matrices using
 the distributed memory of multiple nodes. In contrast, we scale this operation
 by utilizing commodity SSDs. We focus on sparse matrices derived from graphs
 and implement sparse matrix dense matrix multiplication
-in a semi-external memory fashion (SEM-SpMM), i.e., we keep the sparse matrix
+in a semi-external memory fashion (SEM-SpMM), in which we keep the sparse matrix
 on SSDs and dense matrices in memory. Our SEM-SpMM incorporates many in-memory
 optimizations for large graphs with near-random vertex
 connection. Coupled with many I/O optimizations, our SEM-SpMM achieves performance
