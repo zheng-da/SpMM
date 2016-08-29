@@ -115,9 +115,8 @@ larger than memory, we split it
 vertically into multiple partitions so that each partition can fit in
 memory. As such, the minimum memory requirement of our solution is $O(n)$,
 where $n$ is the number of rows in the input dense matrix. By keeping more columns
-in the dense matrix in memory, we reduce I/O from SSDs in SpMM. When the number
-of columns in a dense matrix increases, SEM-SpMM becomes CPU bound, instead of
-I/O bound, on fast SSDs.
+in the dense matrix in memory, we reduce I/O from SSDs and SEM-SpMM becomes
+CPU bound, instead of I/O bound, on fast SSDs.
 
 We develop three important applications in scientific computing and graph
 analysis
