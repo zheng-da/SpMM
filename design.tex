@@ -347,9 +347,9 @@ complete the computation. Reducing memory consumption is essential
 to achieve performance in semi-external memory. By keeping more columns of
 the input dense matrix in memory, we reduce the number of I/O passes.
 
-Although we can use some memory to cache part of a sparse matrix,
+Although we can cache part of a sparse matrix,
 keeping more columns of the input dense matrix in memory saves more I/O than
-using the same amount of memory to cache the sparse matrix. Assume the input
+using the same amount of memory for the sparse matrix. Assume the input
 dense matrix has $n$ rows and $p$ columns. Again, $c$ is the element size
 in bytes. The storage size of the sparse
 matrix is $E$ bytes and the memory size is $M$ bytes. We further assume
