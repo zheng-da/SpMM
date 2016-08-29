@@ -17,8 +17,7 @@ DDR3-1600. Each processor has 12 cores. The machine has three LSI SAS 9300-8e
 host bus adapters (HBA) connected to a SuperMicro storage chassis, in which
 24 OCZ Intrepid 3000 SSDs are installed. The 24 SSDs together are capable of
 delivering 12 GB/s for read and 10 GB/s for write at maximum. The machine runs
-Linux kernel v3.13.0. We use 48 threads for our in-memory and semi-external
-implementation.
+Linux kernel v3.13.0. We use 48 threads for all implementations.
 
 \begin{table}
 \begin{center}
@@ -115,6 +114,38 @@ thus, startup overhead has significant impact on the average I/O throughput.
 As the number of columns in the dense matrix increases, SpMM becomes more CPU
 bound. For all graphs, SEM-SpMM requires a very small number of columns to
 become CPU-bound and achieve close to 100\% performance of IM-SpMM.
+
+Multiple factors affect the performance
+gap between IM-SpMM and SEM-SpMM (Figure \ref{perf:spmm_sbm}). We illustrate
+some of the factors with stochastic block model (SBM) \cite{sbm}, a random graph
+generation model widely used in the graph community. In this experiment, we
+generate SBM graphs with 100 million vertices and 3 billion edges.
+One of the main factors is whether vertices in a graph are ordered
+based on its cluster structures. If the vertices in a graph are randomly ordered,
+SpMV on the graph generates many random memory access. Thus, the system is
+bottlenecked by memory bandwidth and the performance gap between IM-SpMV and
+SEM-SpMV is small. Because it is usually expensive to find the cluster structures
+of real-world graphs and order vertices accordingly, it is a common case to run
+SpMM on an unclustered graph. Even on a graph with vertices ordered based on
+cluster structures, some cluster properties such as the number of clusters and
+the ratio of edges inside and outside clusters have significant impact on
+the performance gap.
+As the number of clusters increases, the size of clusters gets smaller and
+there are fewer random memory accesses inside clusters. Similarly, more
+edges inside clusters also lead to fewer random memory accesses.
+
+\begin{figure}
+	\begin{center}
+		\footnotesize
+		\includegraphics[scale=1]{SpMM_figs/spmm-sbm.eps}
+		\caption{The relative performance of SEM-SpMV on graphs generated with
+			stochastic block model, normalized to IM-SpMV on the same graphs.
+			IN/OUT indicates the ratio of edges inside and outside clusters.
+			A graph can have vertices ordered based on the cluster structures
+		(clustered) and randomly ordered (unclustered).}
+		\label{perf:spmm_sbm}
+	\end{center}
+\end{figure}
 
 \subsection{SEM-SpMM vs. other in-memory SpMM}
 In this section, we compare SEM-SpMM with the Intel MKL and Trilinos Tpetra
