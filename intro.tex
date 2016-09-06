@@ -34,12 +34,12 @@ in sparse matrix multiplication due to near-random distribution of non-zero
 entries as well as the sparsity and the enormous size of graphs. 
 
 We focus on sparse matrices derived from graphs because they are more difficult 
-to compute efficiently that general sparse matrices and because some of the 
+to compute efficiently than general sparse matrices and because some of the 
 largest matrices and most important analysis tasks operate on graph datasets, 
 e.g.~social networks and Web graphs. 
 Facebook's social network has billions of vertices and
-the Web Data Commons graph \rb{\\cite{DZTODO}} has 3.6 billion vertices and 128 billions edges.
-We perform sparse matrix multiplication for graph
+the Web Data Commons graph \cite{web_graph} has 3.6 billion vertices and 128
+billions edges. We perform sparse matrix multiplication for graph
 analysis such as community detection with NMF and spectral analysis with SVD.
 
 %These matrices inherit structure
@@ -61,7 +61,7 @@ Current research focuses on sparse matrix multiplication in memory
 for small matrices and scaling to a large sparse matrix in a large cluster,
 where the aggregate memory is sufficient to store the sparse matrix
 \cite{Williams07, Yoo11, Boman2013}.
-Distributed solutions for sparse matrix multiplication leads to significant
+Distributed solutions for sparse matrix multiplication lead to significant
 network communication and network bandwidth is usually the bottleneck.
 As such, this operation requires a fast network to achieve performance.
 A supercomputer or a large cluster with a fast network is inaccessible or
@@ -76,7 +76,8 @@ These machines typically have multiple processors with many CPU cores and
 a large amount of memory. They are also equipped with fast flash
 memory such as solid-state drives (SSDs) to further extend memory capacity.
 This conforms to the node design for supercomputers \cite{Ang14}.
-Recent finding, from Frank McSheery \cite{hotos,blog} and our prior work \cite{FlashGraph},
+Recent finding, from Frank McSheery \cite{McSherry15,McSherryBlog} and our
+prior work \cite{FlashGraph},
 show that the largest graph analytics tasks can be done on a small fraction of
 the hardware, at less cost, as fast, and using less energy on a single shared-memory 
 node, rather than a distributed compute engine.  Our finding in this paper reveal

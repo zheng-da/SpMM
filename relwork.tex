@@ -17,7 +17,7 @@ used sparse matrix formats in many numeric libraries such as Intel MKL \cite{mkl
 and Trilinos \cite{trilinos}. However, these formats are not designed for graphs.
 Sparse matrix multiplication with these formats on graphs incurs many random memory
 accesses. %Other, more modern sparse matrix formats have been designed.
-Another format, Sparsity \cite{Im04}, encodes both register blocking and cache blocking to
+Sparsity \cite{Im04} designs a format that encodes both register blocking and cache blocking to
 increase data reuse in the CPU cache for sparse matrix multiplication. Register blocking
 requires explicit storage of zero values in register blocks. This strategy
 wastes space and computation for graphs because graphs are very
@@ -25,18 +25,18 @@ sparse and have nearly random vertex connection. Buluc et al.~\cite{Buluc08}
 further advance sparse matrix format
 by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
 partitioning on a sparse matrix. This format significantly reduces the storage
-size of a 2D-partitioned sparse matrix. Our format further reduces the storage size of a sparse
-matrix.  SciDB \cite{} developed a general purpose dense array format that includes 2-d and 
-3-d partitioning and ghost cells \cite{}.  It is not well-suited to sparse matrixes.
+size of a 2D-partitioned sparse matrix. Our format further reduces the storage
+size of a sparse matrix. SciDB \cite{Stonebraker11} developed a general purpose
+dense array format that includes 2-d and 3-d partitioning and ghost cells
+\cite{Soroush11}.  It is not well-suited to sparse matrixes.
 
 %DZ TODO scidb cite -- http://www.odbms.org/wp-content/uploads/2014/04/The_Architecture_of_SciDB.pdf
 % Array Store cite -- http://scidb.cs.washington.edu/paper/sigmod362-soroush.pdf
-%Array database literature. \dz{scidb}
 
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
 framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
 semi-external memory graph traversal algorithms for SSDs. FlashGraph
-\cite{flashgraph} adopted the concept and performs graph algorithms with
+\cite{FlashGraph} adopted the concept and performs graph algorithms with
 vertex state in memory and edge lists on SSDs. This work extends the semi-external
 memory concept to matrix operations.
 
@@ -50,9 +50,7 @@ graphs and vertex computation state on disks. In contrast, our work focuses on
 optimizations on sparse matrix dense matrix multiplication and performs this
 operation in semi-external memory to reduce I/O, especially to minimize writes
 to SSDs.  GridGraph runs much more slowly than in-memory engines and our 
-SEM SpMM implementation.
- \rb{Why do we not compare with GridGraph?  Should we?  This treatment
-leaves many questions.  Is it slow? I wrote the above paragraph assuming that it's correct.}
+SEM SpMM implementation. \dz{Do we need to compare with it directly?}
 
 MapReduce \cite{MapReduce} is also commonly used for processing large graphs.
 PEGASUS \cite{pegasus} is a popular graph processing engine built on MapReduce
