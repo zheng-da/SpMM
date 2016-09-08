@@ -413,6 +413,33 @@ increases I/O throughput and, thus, improves performance. In contrast, SEM-SpMV
 with the Friendster graph in the SCSR format already achieves almost 80\% of
 IM-SpMV and, thus, further I/O optimizations have less noticeable speedup.
 
+\begin{table}
+\begin{center}
+\footnotesize
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+	& Convert & Convert(I/O) & SpMV & SpMV(I/O) \\
+\hline
+Page graph & 86.00 s & 9.33 GB/s & 26.92 s & 10.60 GB/s\\
+\hline
+RMAT-160 & 19.81 s & 9.51 GB/s & 7.96 s & 10.27 GB/s\\
+\hline
+\end{tabular}
+\normalsize
+\end{center}
+\caption{The speed and I/O throughput of format conversion from CSR to SCSR
+	on large graphs, compared with SpMV.}
+\label{convert}
+\end{table}
+
+Format conversion from CSR to SCSR has linear time and I/O complexity and
+saturates the SSD I/O bandwidth (Figure \ref{convert}). It requires to read
+the CSR image once and write the SCSR image back once, which results in
+the minimum amount of I/O and the best performance for this operation.
+Furthermore, format conversion generates one-time overhead. Most of the applications
+require many iterations of sparse matrix multiplication. As such, the format
+conversion overhead is amortized.
+
 \subsection{Performance of the applications}
 
 We evaluate the performance of our implementations of the applications in
