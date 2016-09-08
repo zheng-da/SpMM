@@ -12,7 +12,7 @@ multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
 % Why is it hard?
 
-It is challenging implement sparse matrix multiplication efficiently. 
+It is challenging to implement sparse matrix multiplication efficiently. 
 It has very low computation density and its
 performance is limited by memory access. Sparse matrix multiplication usually achieves only
 a small fraction of the peak performance of a modern processor \cite{Williams07}.
@@ -29,7 +29,8 @@ computing. As such, many optimizations for traditional sparse matrices, such
 as register blocking and prefetching \cite{Williams07} increase storage size,
 bring more data to CPU cache unnecessarily and hurt performance.
 The commonly used sparse matrix storage formats such as CSR (compressed sparse
-row) and CSC (compressed sparse column) leads to significant CPU cache misses
+row) and CSC (compressed sparse column) for graph matrices leads to significant
+CPU cache misses
 in sparse matrix multiplication due to near-random distribution of non-zero
 entries as well as the sparsity and the enormous size of graphs. 
 
@@ -81,8 +82,8 @@ prior work \cite{FlashGraph},
 show that the largest graph analytics tasks can be done on a small fraction of
 the hardware, at less cost, as fast, and using less energy on a single shared-memory 
 node, rather than a distributed compute engine.  Our finding in this paper reveal
-that sparse matrix has the same structure and benefits and that the largest 
-matrixes can be processed efficiently on scale-up compute nodes.
+that sparse matrices has the same structure and benefits and that the largest 
+matrices can be processed efficiently on scale-up compute nodes.
 
 We explore a solution that scales sparse matrix dense matrix multiplication
 (SpMM) on a multi-core machine with commodity SSDs and

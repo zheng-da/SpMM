@@ -522,13 +522,12 @@ and dense matrices in memory. Our SEM-SpMM incorporates many
 in-memory optimizations for large power-law graphs with near-random vertex
 connection. It outperforms the in-memory implementations of Trilinos
 and Intel MKL and scales to billion-node graphs, far beyond the limitations of memory.
-Futhermore, on a single large parallel machine, our SEM-SpMM operates as fast as the distributed
-implementations of Trilinos and Intel MKL using ten times as much processing power.
-We also run our implementation in-memory to quantify the overhead of keeping data
-on SSDs.  SEM SpMM achieves almost 100\% performance
-of the in-memory implementation on graphs when the dense matrix has more
-than four columns; it achieves at least 65\% performance of the in-memory
-implementation on all inputs. 
+Futhermore, on a single large parallel machine, our SEM-SpMM operates as fast as
+the distributed implementations of Trilinos using five times as much processing power.
+We also run our implementation in memory (IM-SpMM) to quantify the overhead of
+keeping data on SSDs.  SEM-SpMM achieves almost 100\% performance of IM-SpMM
+on graphs when the dense matrix has more than four columns; it achieves at least
+65\% performance of IM-SpMM on all inputs. 
 We apply our SpMM to three important data analysis tasks---PageRank, eigensolving, and 
 non-negative matrix factorization---and show that
 our SEM implementations significantly advances the state of the art.

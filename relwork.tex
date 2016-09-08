@@ -49,8 +49,8 @@ algorithms expressed as sparse matrix vector multiplication and keeps both
 graphs and vertex computation state on disks. In contrast, our work focuses on
 optimizations on sparse matrix dense matrix multiplication and performs this
 operation in semi-external memory to reduce I/O, especially to minimize writes
-to SSDs.  GridGraph runs much more slowly than in-memory engines and our 
-SEM SpMM implementation. \dz{Do we need to compare with it directly?}
+to SSDs. GridGraph runs much more slowly than our SEM SpMM implementation.
+%\dz{Do we need to compare with it directly?}
 
 MapReduce \cite{MapReduce} is also commonly used for processing large graphs.
 PEGASUS \cite{pegasus} is a popular graph processing engine built on MapReduce

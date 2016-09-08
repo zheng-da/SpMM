@@ -13,7 +13,7 @@ in memory. We may keep the entire output matrix in memory if it is sufficiently
 small or stream the output matrix to SSDs or to the subsequent computation.
 
 In some applications, such as non-negative matrix factorization (Section
-\ref{sec:spmm:apps}), even the input dense matrix does fit in memory. In this case,
+\ref{sec:spmm:apps}), even the input dense matrix does not fit in memory. In this case,
 we partition the input dense matrix vertically so that each partition has
 complete columns of the original input dense matrix that fit in memory.
 For each vertical partition, we perform SpMM in semi-external memory and
@@ -195,7 +195,7 @@ a tile row. All intermediate computation results on tiles are merged into
 the local memory buffers. As such, we write the output matrix at most once
 to SSDs and there are no remote memory writes.
 In contrast, the vertical partitioning and 2D partitioning \cite{Koanantakool16}
-would require each thread to maintain a local memory buffer for the same tile rows in order
+would require each thread to maintain a local memory buffer for the same tile rows
 to aggregate writes to SSDs and remote memory.
 %to reduce writes to SSDs and remote memory, which increases memory consumption.
 
@@ -280,9 +280,8 @@ increase their duration. To assist in I/O merging, we use
 order that ensures that all threads are processing contiguous tile rows and
 the results from the tile rows are located closely on SSDs.
 We write computation results from \textit{MulTRows} to SSDs
-asynchronously with \textit{write\_rows\_async()}, which postpones writes and
-merges the writes from different threads.
-
+asynchronously with \textit{write\_rows\_async()}, which merges the writes
+from different threads.
 
 To better utilize the CPU cache, \textit{MulTRows}, 
 %in Algorithm \ref{alg:spmm} processes tile rows to increase CPU cache hits and reduce remote memory access. 
