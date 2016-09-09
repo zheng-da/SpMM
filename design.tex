@@ -10,7 +10,7 @@ to the ratio of non-zero entries to rows or columns in a sparse matrix.
 Our definition of semi-external memory for SpMM keeps the sparse matrix on
 SSDs and the input dense matrix or some columns of the input dense matrix
 in memory. We may keep the entire output matrix in memory if it is sufficiently
-small or stream the output matrix to SSDs or to the subsequent computation.
+small or stream it to SSDs or the subsequent computation.
 
 In some applications, such as non-negative matrix factorization (Section
 \ref{sec:spmm:apps}), even the input dense matrix does not fit in memory. In this case,
@@ -143,7 +143,7 @@ are very large and sparse, the dense matrices may be too large to fit in memory.
 Thus, for the general case of SpMM, we split the dense matrices into vertical
 partitions of the memory size. To increase data locality in SpMM, the elements
 in each vertical partition are stored in row-major order (Figure \ref{dense_mat}
-(a)).  When performing SpMM in semi-external memory, we first load the input dense
+(a)).  When performing SpMM in semi-external memory, we load the input dense
 matrix or one of its vertical partitions into memory. 
 
 For a non-uniform memory architecture (NUMA), we partition the input dense matrix

@@ -11,7 +11,7 @@ and Trilinos v12.0.1 for the experiments. We demonstrate the effectiveness of
 CPU and I/O optimizations on SEM-SpMM and evaluate the overall performance
 of the applications in Section \ref{sec:spmm:apps}.
 
-We conduct experiments on a non-uniform memory architecture machine with
+We conduct experiments on a NUMA machine with
 four Intel Xeon E7-4860 processors, clocked at 2.6 GHz, and 1TB memory of
 DDR3-1600. Each processor has 12 cores. The machine has three LSI SAS 9300-8e
 host bus adapters (HBA) connected to a SuperMicro storage chassis, in which
@@ -48,19 +48,16 @@ both RMAT-40 and RMAT-160.}
 
 We use the adjacency matrices of the graphs in Table \ref{graphs} for performance
 evaluation. The smallest graph we use has 42 million vertices and 1.5 billion
-edges. The largest graph is the Page graph with 3.4 billion vertices
-and 129 billion edges, which is two orders of magnitude larger than the smallest
-graphs. We generate two synthetic graphs with R-Mat \cite{rmat} to fill the size
-gap between the smallest and largest graph. We construct a directed and
+edges. The largest graph is the Page graph with 3.4 billion vertices and 129
+billion edges. We generate two synthetic graphs with R-Mat \cite{rmat} to fill
+the size gap between the smallest and largest graphs. We construct a directed and
 undirected version for each of the synthetic graphs because some applications
 in Section \ref{sec:spmm:apps} run on directed graphs and others run on undirected
 graphs. The real-world datasets are publically available and the synthetic
-datasets are generated with the RMAT implementation in the \textit{boost}
-library\footnote{We use the parameters of $a=0.57$, $b=0.19$, $c=0.19$,
+datasets are generated with the \textit{boost} RMAT generator
+\footnote{We use the parameters of $a=0.57$, $b=0.19$, $c=0.19$,
 $d=0.05$.}. We always use the undirected version of the synthetic graphs for
-the performance evaluation of sparse matrix multiplication. The Page graph is
-clustered by domain. The MKL and Tpetra implementations cannot run on the Page
-graph because its size exceeds the memory capacity of our NUMA machine.
+the performance evaluation of sparse matrix multiplication.
 
 \subsection{SEM-SpMM vs. IM-SpMM}
 
@@ -111,22 +108,22 @@ which consumes memory bandwidth and potentially interferes with random memory
 access in SpMV. SEM-SpMV on the Twitter graph takes about 0.5 second to
 complete and,
 thus, startup overhead has significant impact on the average I/O throughput.
-As the number of columns in the dense matrix increases, SpMM becomes more CPU
-bound. For all graphs, SEM-SpMM requires a very small number of columns to
-become CPU-bound and achieve close to 100\% performance of IM-SpMM.
+As the number of columns in the dense matrix increases, SEM-SpMM becomes more
+CPU-bound and requires a small number of columns to achieve close to 100\%
+performance of IM-SpMM.
 
 Multiple factors affect CPU cache hits in sparse matrix multiplication and
-its performance gap in memory and in semi-external memory (Figure
-\ref{perf:spmm_sbm}). We illustrate some of the factors with stochastic
+the performance gap between IM-SpMM and SEM-SpMM (Figure \ref{perf:spmm_sbm}).
+We illustrate some of the factors with stochastic
 block model (SBM) \cite{sussman12}, a random graph
 generation model widely used in the graph community. In this experiment, we
 generate SBM graphs with 100 million vertices and 3 billion edges.
 One of the main factors is whether vertices in a graph are ordered
 based on its cluster structures. If the vertices in a graph are randomly ordered,
 SpMV on the graph generates many random memory access. Thus, the system is
-bottlenecked by memory bandwidth and the performance gap between IM-SpMV and
-SEM-SpMV is small. Because it is expensive to find the cluster structures
-of real-world graphs and order vertices accordingly, we usually run
+bottlenecked by memory bandwidth and the performance gap is small. Because iti
+is expensive to find cluster structures in a graph and order vertices accordingly,
+we usually run
 SpMM on an unclustered graph. Even on a graph with vertices ordered based on
 cluster structures, some cluster properties such as the number of clusters and
 the ratio of edges inside and outside clusters have significant impact on
@@ -149,13 +146,14 @@ edges inside clusters also lead to fewer random memory accesses.
 \end{figure}
 
 \subsection{SEM-SpMM vs. other in-memory SpMM}
-In this section, we compare SEM-SpMM with the Intel MKL and Trilinos Tpetra
-implementations. Intel MKL runs on shared-memory machines. Trilinos Tpetra can run in
+In this section, we compare SEM-SpMM with the Intel MKL and Trilinos Tpetra.
+Intel MKL runs on shared-memory machines. Trilinos Tpetra runs in
 both shared memory and distributed memory, so we measure its performance in
-our 48-core NUMA machine as well as an EC2 cluster. We run Tpetra in the largest
-EC2 instances r3.8xlarge, each of which has 16 physical CPU cores and 244GB of RAM
-and is optimized for memory-intensive applications. The EC2 instances are
-connected with 10Gbps network in the same placement group.
+our 48-core NUMA machine and an EC2 cluster. We run Tpetra in the largest
+EC2 instances r3.8xlarge with 16 physical CPU cores and 244GB of RAM each.
+The EC2 instances are connected with 10Gbps network in the same placement
+group. MKL and Tpetra cannot run on the Page graph on our NUMA machine because
+their memory consumption on this graph exceeds its memory capacity.
 
 \begin{figure}
 	\footnotesize
@@ -182,33 +180,30 @@ connected with 10Gbps network in the same placement group.
 \end{figure}
 
 Our SEM-SpMM significantly outperforms Intel MKL and Trilinos Tpetra on the natural
-graphs on our NUMA machine (Figure \ref{perf:spmm}). In this case, we compare
-performance of our SEM-SpMM with Intel MKL and Trilinos Tpetra for both sparse matrix
-vector multiplication (SpMV) and sparse matrix dense matrix multiplication (SpMM).
+graphs on our NUMA machine for both SpMV and SpMM (Figure \ref{perf:spmm}).
 The Tpetra implementation is optimized for SpMV. Our SEM-SpMM still constantly
-outperforms Tpetra by a factor of $2-3$ even for SpMV. The MKL implementation has
+outperforms Tpetra by a factor of $2-3$ even in SpMV. The MKL implementation has
 better optimizations for SpMM than Trilinos Tpetra. Our SEM-SpMM is still almost
 twice as fast as MKL in SpMM with a dense matrix of eight columns. There are
 multiple reasons that our SEM-SpMM outperforms the ones in MKL and Tpetra.
-First, our SEM-SpMM deploys a fine-grain dynamic load balancing scheme and
-balance loads much better than MKL and Tpetra. Cache blocking in our
-implementation significantly reduces CPU cache misses.
-In contrast, MKL and Tpetra store a sparse matrix in CSC or CSR format,
+First, our SEM-SpMM has a fine-grain dynamic load balancing scheme and
+balances loads much better than MKL and Tpetra. Cache blocking in SEM-SpMM
+also significantly reduces CPU cache misses. In contrast, MKL and Tpetra store
+a sparse matrix in CSC or CSR format,
 which leads to more CPU cache misses. Because Tpetra
 is implemented with MPI, it has additional memory copy overhead to exchange
 partitions of the input dense matrix among processes.
 
 SEM-SpMM only consumes a small fraction of memory compared with IM-SpMM and
 other SpMM implementations (Figure \ref{perf:spmm_mem}). SEM-SpMM consumes
-memory for the input dense matrix as well as per-thread local memory buffers
-for the sparse matrix and the output dense matrix. When we use 48 threads for
-SpMM, the memory used by local memory buffers in each thread is significant
+memory for the input dense matrix and per-thread memory buffers for the sparse
+matrix and the output dense matrix. The memory used by memory buffers
+in each thread is significant
 but is relatively constant for different graph sizes. We only show the memory
 consumption on one of the large graphs RMAT-160 in Figure \ref{perf:spmm_mem}.
-Despite considerable memory used by local memory buffers, SEM-SpMM uses about
-one tenth of the memory
-used by IM-SpMM. We also observe that IM-SpMM consumes much less memory than
-MKL and Tpetra owing to its compact format for sparse matrices.
+SEM-SpMM uses about one tenth of the memory used by IM-SpMM, while IM-SpMM
+consumes much less memory than MKL and Tpetra owing to its compact format for
+sparse matrices.
 
 \begin{figure}
 	\begin{center}
@@ -246,40 +241,34 @@ MKL and Tpetra owing to its compact format for sparse matrices.
 	\label{perf:ec2}
 \end{figure}
 
-Our SEM-SpMM implementation on a large parallel machine achieves comparable
-performance and, in many cases, outperforms Trilinos Tpetra using five times
+Our SEM-SpMM on a large parallel machine achieves comparable performance
+and, in many cases, outperforms Trilinos Tpetra using five times
 as much processing power, especially on
 real-world graphs (Figure \ref{perf:ec2}). In this experiment, we run our
 SpMM implementation on both our NUMA machine with 48 CPU cores
 and one of the EC2 machines with 16 CPU cores. Owing to the compact format
-for a sparse matrix, our SpMM implementation can run on all of the graphs
-in memory on an EC2 instance. When Tpetra runs on 16 EC2 instances, it has
-5 times as many CPU cores as our NUMA machine. Tpetra is not
-able to run SpMV on RMAT-160 on two EC2 nodes. Even though an EC2 instance
-has only 16 physical CPU cores, our IM-SpMM on an EC2 instance achieves around
-half of the performance of our IM-SpMM on our NUMA machine. In contrast,
-Trilinos Tpetra uses many more computation resources and still barely reaches
+for a sparse matrix, our IM-SpMM runs on all of the graphs on an EC2 instance
+and achieves around half of the performance of our IM-SpMM on our NUMA machine.
+When Tpetra runs on 16 EC2 instances, it has 5 times as many CPU cores as our
+NUMA machine. Tpetra cannot run SpMV on RMAT-160 on two EC2 nodes.
+Tpetra uses many more computation resources and still barely reaches
 the same performance as our IM-SpMM and SEM-SpMM on our NUMA machine. One of
 the main reasons that our SpMM implementation performs much
 better on real-world graphs is that these graphs are more likely to cause
-load imbalance. Our SpMM implementation balances load much better than
-distributed implementations that partition data.
+load imbalance. Our SpMM implementation balances load much better than Tpetra.
 
 \subsection{SEM-SpMM with a large input dense matrix}
 
 We further measure the performance of SEM-SpMM with a large input dense matrix,
 in which neither the sparse matrix nor the dense matrices can fit in memory.
 In this experiment, we measure the performance of multiplying a sparse matrix
-with a dense matrix of 32 columns and the input dense matrix is stored on SSDs
-initially. We study the impact of memory size on the performance of SEM-SpMM
+with a dense matrix of 32 columns and the input and output dense matrices are
+stored on SSDs. We study the impact of memory size on the performance of SEM-SpMM
 by artificially varying the number of columns that can fit in memory. SEM-SpMM
-accesses
-the sparse matrix with direct I/O and, thus, varying the number of columns
-in the dense matrix that fit in memory does not affect data access to the
-sparse matrix. In each run, we need to load the input dense matrix from
-SSDs and stream the output dense matrix to SSDs. We do not show the result on
-the Page graph because the dense matrix with 32 columns for the Page graph
-cannot fit in memory.
+accesses the sparse matrix with direct I/O and, thus, varying the number of
+columns stored in memory does not affect I/O access to the sparse matrix. We
+do not show the result on the Page graph because the dense matrix with
+32 columns for this graph cannot fit in memory.
 
 \begin{figure}
 	\begin{center}
@@ -328,8 +317,8 @@ is less significant and remains the same for different memory sizes.
 \subsection{Optimizations on sparse matrix multiplication}
 Accelerating SEM-SpMM requires both computation and I/O optimizations.
 We first evaluate the effectiveness of computation optimizations by deploying
-them on IM-SpMM. We further show the effectiveness of I/O optimizations by
-deploying them on SEM-SpMM with all computation optimizations.
+them on IM-SpMM. We further show the effectiveness of I/O optimizations on
+SEM-SpMM with all computation optimizations.
 
 Here we illustrate the most significant computation optimizations from Section
 \ref{sec:spmm}. We start with an in-memory implementation that
@@ -418,7 +407,7 @@ IM-SpMV and, thus, further I/O optimizations have less noticeable speedup.
 \footnotesize
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-	& Conv & Conv (I/O) & SEM-SpMV & SEM-SpMV (I/O) \\
+	& Conv & Conv (I/O) & SpMV & SpMV (I/O) \\
 \hline
 Page graph & 86.00 s & 9.33 GB/s & 26.92 s & 10.60 s\\
 \hline
