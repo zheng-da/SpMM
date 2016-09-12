@@ -26,9 +26,13 @@ further advance sparse matrix format
 by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
 partitioning on a sparse matrix. This format significantly reduces the storage
 size of a 2D-partitioned sparse matrix. Our format further reduces the storage
-size of a sparse matrix. SciDB \cite{Stonebraker11} developed a general purpose
-dense array format that includes 2-d and 3-d partitioning and ghost cells
-\cite{Soroush11}.  It is not well-suited to sparse matrixes.
+size of a sparse matrix. There are array databases (SciDB \cite{scidb} and
+Rasdaman \cite{rasdaman}) that support
+sparse matrix mutliplication. They perform matrix multiplication using CSR
+formats \cite{SLACID}, similar to Intel MKL and Trillinos.  There has also been
+preliminary research on accelerating matrix multiplication with GPUs \cite{Liu14},
+showing that speedups are limited by I/O and setup costs and that benefits
+are limited to compute-dense operations.
 
 %DZ TODO scidb cite -- http://www.odbms.org/wp-content/uploads/2014/04/The_Architecture_of_SciDB.pdf
 % Array Store cite -- http://scidb.cs.washington.edu/paper/sigmod362-soroush.pdf

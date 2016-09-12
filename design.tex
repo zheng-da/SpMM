@@ -1,8 +1,7 @@
 \section{Sparse matrix multiplication} \label{sec:spmm}
-Sparse matrix dense matrix multiplication (SpMM) leads to random memory
+Sparse matrix dense matrix multiplication (SpMM) generates many random memory
 accesses and its performance is limited by random memory throughput
-of DRAM. We perform SpMM in semi-external memory (SEM)
-to scale to a sparse matrix with billions of rows and columns. This strategy enables
+of DRAM. We perform SpMM in semi-external memory (SEM) to enable
 nearly in-memory performance, while achieving scalability in proportion
 to the ratio of non-zero entries to rows or columns in a sparse matrix.
 

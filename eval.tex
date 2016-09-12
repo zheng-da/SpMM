@@ -145,9 +145,9 @@ edges inside clusters also lead to fewer random memory accesses.
 	\end{center}
 \end{figure}
 
-\subsection{SEM-SpMM vs. other in-memory SpMM}
-In this section, we compare SEM-SpMM with the Intel MKL and Trilinos Tpetra.
-Intel MKL runs on shared-memory machines. Trilinos Tpetra runs in
+\subsection{Compare with other in-memory SpMM}
+In this section, we compare our SpMM implementation with the Intel MKL and
+Trilinos Tpetra. Intel MKL runs on shared-memory machines. Trilinos Tpetra runs in
 both shared memory and distributed memory, so we measure its performance in
 our 48-core NUMA machine and an EC2 cluster. We run Tpetra in the largest
 EC2 instances r3.8xlarge with 16 physical CPU cores and 244GB of RAM each.
@@ -179,20 +179,22 @@ their memory consumption on this graph exceeds its memory capacity.
 	\label{perf:spmm}
 \end{figure}
 
-Our SEM-SpMM significantly outperforms Intel MKL and Trilinos Tpetra on the natural
+Our IM-SpMM and SEM-SpMM significantly outperform Intel MKL and
+Trilinos Tpetra on the natural
 graphs on our NUMA machine for both SpMV and SpMM (Figure \ref{perf:spmm}).
-The Tpetra implementation is optimized for SpMV. Our SEM-SpMM still constantly
-outperforms Tpetra by a factor of $2-3$ even in SpMV. The MKL implementation has
-better optimizations for SpMM than Trilinos Tpetra. Our SEM-SpMM is still almost
-twice as fast as MKL in SpMM with a dense matrix of eight columns. There are
-multiple reasons that our SEM-SpMM outperforms the ones in MKL and Tpetra.
-First, our SEM-SpMM has a fine-grain dynamic load balancing scheme and
-balances loads much better than MKL and Tpetra. Cache blocking in SEM-SpMM
-also significantly reduces CPU cache misses. In contrast, MKL and Tpetra store
-a sparse matrix in CSC or CSR format,
-which leads to more CPU cache misses. Because Tpetra
-is implemented with MPI, it has additional memory copy overhead to exchange
-partitions of the input dense matrix among processes.
+Even though the Tpetra implementation is optimized for SpMV, our SEM-SpMM
+constantly outperforms Tpetra by a factor of $2-3$ even in SpMV. MKL has
+better optimizations for SpMM than Tpetra. Our SEM-SpMM is still almost
+twice as fast as MKL in SpMM with a dense matrix of eight columns. Our SpMM
+implementation benefits all of the in-memory optimizations to achieve high
+computation efficiency and has substantial I/O optimizations to reduce
+the performance gap between IM-SpMM and SEM-SpMM (Section \ref{sec:opts}).
+Specifially, the fine-grain dynamic load balancer achieves better load balancing
+than MKL and Tpetra. Cache blocking significantly reduces CPU cache misses,
+while MKL and Tpetra store a sparse matrix in CSC or CSR format and have
+more CPU cache misses. %Because Tpetra
+%is implemented with MPI, it has additional memory copy overhead to exchange
+%partitions of the input dense matrix among processes.
 
 SEM-SpMM only consumes a small fraction of memory compared with IM-SpMM and
 other SpMM implementations (Figure \ref{perf:spmm_mem}). SEM-SpMM consumes
@@ -237,7 +239,7 @@ sparse matrices.
 		Trilinos Tpetra on EC2 clusters (2xEC2, 4xEC2, 8xEC2 and 16xEC2),
 		normalized to IM-SpMM on our 48-core machine for the same graphs.
 		We also show the performance of IM-SpMM on
-	one of the EC2 instance (IM-EC2) where Trilinos Tpetra runs.}
+	one of the EC2 instance (IM-EC2) where Tpetra runs.}
 	\label{perf:ec2}
 \end{figure}
 
@@ -314,7 +316,7 @@ of the dense matrix can fit in memory. The overhead of streaming the output dens
 matrix to SSDs (Out-EM) and reading the input dense matrix to memory (In-EM)
 is less significant and remains the same for different memory sizes.
 
-\subsection{Optimizations on sparse matrix multiplication}
+\subsection{Optimizations on sparse matrix multiplication} \label{sec:opts}
 Accelerating SEM-SpMM requires both computation and I/O optimizations.
 We first evaluate the effectiveness of computation optimizations by deploying
 them on IM-SpMM. We further show the effectiveness of I/O optimizations on
@@ -421,15 +423,15 @@ RMAT-160 & 19.81 s & 9.51 GB/s & 7.96 s & 10.27 s\\
 \label{convert}
 \end{table}
 
-Format conversion from CSR to SCSR has linear time complexity so this operation
-is bottlenecked by SSDs on our largest graphs (Table \ref{convert}).
+Format conversion from CSR to SCSR has low cost with linear time complexity and
+this operation is bottlenecked by SSDs on our largest graphs (Table \ref{convert}).
 It requires to read
 the CSR image once and write the SCSR image back once, which results in
 the minimum amount of I/O and the best performance achieved on our SSD array.
-Furthermore, format conversion generates one-time overhead. Most of the applications
+Furthermore, format conversion generates only one-time overhead. Most of the applications
 such as PageRank and eigensolving require many iterations of sparse matrix
-multiplication to perform computation. As such, the format conversion overhead
-is amortized.
+multiplication to compute accurate results. As such, the format conversion
+overhead is amortized.
 
 \subsection{Performance of the applications}
 
