@@ -31,8 +31,8 @@ compressed column storage (CSC), are not designed for graphs. Graphs are sparse
 and large so the dense matrix involved in SpMM is too large to fit in CPU
 cache. Furthermore, graphs have near-random vertex connection, which
 leads to random access to rows in a large dense matrix in sparse matrix
-multiplication. As such, these two formats cause
-many CPU cache misses. In addition, these two formats also require a large
+multiplication. As such, these two formats cause many CPU cache misses.
+In addition, the formats require a large
 storage size. For a sparse matrix with billions of non-zero entries, we have to
 use eight bytes to store row and column indices.
 
@@ -59,7 +59,7 @@ rely on the runtime system
 to optimize for different numbers of columns (Section \ref{sec:exec}).
 However, a small tile size potentially increases the storage size of a sparse
 matrix. In semi-external memory, the dense matrices usually have
-a small number of columns in sparse matrix multiplication. Therefore, we
+a small number of columns in sparse matrix multiplication. We
 use the tile size of $16K \times 16K$ by default to balance the matrix storage
 size and the adaptibility to different numbers of columns.
 
@@ -187,8 +187,8 @@ sparse matrix multiplication in semi-external memory.
 \end{figure}
 
 Semi-external memory favors horizontal partitioning on a sparse matrix
-for parallelization because this partitioning scheme minimizes writes to SSDs.
-Horizontal partitioning
+for parallelization because this partitioning scheme minimizes writes to
+remote memory and SSDs. Horizontal partitioning
 requires only one thread to allocate local memory buffers for computation on
 a tile row. All intermediate computation results on tiles are merged into
 the local memory buffers. As such, we write the output matrix at most once
@@ -295,15 +295,15 @@ a local memory buffer $outBuf$ to store the computation results,
 which minimizes remote memory access. Once the computation in \textit{MulTRows}
 is complete, $outBuf$ contains complete results.
 
-We vectorize the computation on rows of dense matrix.
+We vectorize the computation on rows of dense matrices.
 In SpMM, we multiply a non-zero entry from a tile with all elements in
 a row of the input dense matrix and add the results to the corresponding row
 of the output dense matrix.
 We perform these operations with vector CPU instructions, such as
 AVX \cite{avx} to enable more efficient memory access and computation.
-The current implementation relies on GCC's auto-vectorization
-to translate the C code to vector CPU instructions by predefining the matrix
-width in the code.
+%The current implementation relies on GCC's auto-vectorization
+%to translate the C code to vector CPU instructions by predefining the matrix
+%width in the code.
 
 \subsection{I/O optimizations}
 Semi-external memory sparse matrix multiplication streams a sparse matrix from
@@ -513,7 +513,7 @@ recommender systems. NMF can also be applied to graphs to find communities
 \cite{yang13, wang11}.
 
 Many algorithms are designed to solve NMF and here we describe an algorithm
-\cite{nmf} that requires a sequence of sparse matrix multiplications.
+\cite{nmf} that requires a sequence of sparse matrix dense matrix multiplications.
 The algorithm uses multiplicative update rules and updates matrices $W$ and $H$
 alternately. In each iteration, the algorithm first fixes $W$ to update $H$
 and then fixes $H$ to update $W$.

@@ -113,15 +113,15 @@ CPU-bound and requires a small number of columns to achieve close to 100\%
 performance of IM-SpMM.
 
 Multiple factors affect CPU cache hits in sparse matrix multiplication and
-the performance gap between IM-SpMM and SEM-SpMM (Figure \ref{perf:spmm_sbm}).
-We illustrate some of the factors with stochastic
-block model (SBM) \cite{sussman12}, a random graph
-generation model widely used in the graph community. In this experiment, we
+the performance gap between IM-SpMV and SEM-SpMV (Figure \ref{perf:spmm_sbm}).
+We illustrate some of the factors with stochastic block model (SBM)
+\cite{sussman12}, a random graph generation model with well-defined clusters
+widely used in the graph community. In this experiment, we
 generate SBM graphs with 100 million vertices and 3 billion edges.
 One of the main factors is whether vertices in a graph are ordered
 based on its cluster structures. If the vertices in a graph are randomly ordered,
 SpMV on the graph generates many random memory access. Thus, the system is
-bottlenecked by memory bandwidth and the performance gap is small. Because iti
+bottlenecked by memory bandwidth and the performance gap is small. Because it
 is expensive to find cluster structures in a graph and order vertices accordingly,
 we usually run
 SpMM on an unclustered graph. Even on a graph with vertices ordered based on
@@ -268,8 +268,9 @@ with a dense matrix of 32 columns and the input and output dense matrices are
 stored on SSDs. We study the impact of memory size on the performance of SEM-SpMM
 by artificially varying the number of columns that can fit in memory. SEM-SpMM
 accesses the sparse matrix with direct I/O and, thus, varying the number of
-columns stored in memory does not affect I/O access to the sparse matrix. We
-do not show the result on the Page graph because the dense matrix with
+columns stored in memory does not affect I/O access to the sparse matrix.
+IM-SpMM does not need to partition the dense matrices vertically.
+We do not show the result on the Page graph because the dense matrix with
 32 columns for this graph cannot fit in memory.
 
 \begin{figure}
@@ -424,11 +425,11 @@ RMAT-160 & 19.81 s & 9.51 GB/s & 7.96 s & 10.27 s\\
 \end{table}
 
 Format conversion from CSR to SCSR has low cost with linear time complexity and
-this operation is bottlenecked by SSDs on our largest graphs (Table \ref{convert}).
+is bottlenecked by SSDs on our largest graphs (Table \ref{convert}).
 It requires to read
 the CSR image once and write the SCSR image back once, which results in
 the minimum amount of I/O and the best performance achieved on our SSD array.
-Furthermore, format conversion generates only one-time overhead. Most of the applications
+Format conversion generates only one-time overhead. Most of the applications
 such as PageRank and eigensolving require many iterations of sparse matrix
 multiplication to compute accurate results. As such, the format conversion
 overhead is amortized.

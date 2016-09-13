@@ -26,16 +26,7 @@ further advance sparse matrix format
 by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
 partitioning on a sparse matrix. This format significantly reduces the storage
 size of a 2D-partitioned sparse matrix. Our format further reduces the storage
-size of a sparse matrix. There are array databases (SciDB \cite{scidb} and
-Rasdaman \cite{rasdaman}) that support
-sparse matrix mutliplication. They perform matrix multiplication using CSR
-formats \cite{SLACID}, similar to Intel MKL and Trillinos.  There has also been
-preliminary research on accelerating matrix multiplication with GPUs \cite{Liu14},
-showing that speedups are limited by I/O and setup costs and that benefits
-are limited to compute-dense operations.
-
-%DZ TODO scidb cite -- http://www.odbms.org/wp-content/uploads/2014/04/The_Architecture_of_SciDB.pdf
-% Array Store cite -- http://scidb.cs.washington.edu/paper/sigmod362-soroush.pdf
+size of a sparse matrix.
 
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
 framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
@@ -52,9 +43,19 @@ partitioning to reduce I/O. This graph engine is designed for graph
 algorithms expressed as sparse matrix vector multiplication and keeps both
 graphs and vertex computation state on disks. In contrast, our work focuses on
 optimizations on sparse matrix dense matrix multiplication and performs this
-operation in semi-external memory to reduce I/O, especially to minimize writes
-to SSDs. GridGraph runs much more slowly than our SEM SpMM implementation.
-%\dz{Do we need to compare with it directly?}
+operation in semi-external memory to reduce I/O, especially writes,
+to SSDs. GridGraph runs more slowly than in-memory linear algebra libraries
+such as Intel MKL \cite{mkl} and Trilinos Tpetra \cite{trilinos}.
+
+Array databases such as SciDB \cite{scidb} and Rasdaman \cite{rasdaman} support
+sparse matrix mutliplication. They perform matrix multiplication using CSR
+formats \cite{SLACID}, similar to Intel MKL and Trillinos.  There has also been
+preliminary research on accelerating matrix multiplication with GPUs \cite{Liu14},
+showing that speedups are limited by I/O and setup costs and that benefits
+are limited to compute dense operations.
+
+%DZ TODO scidb cite -- http://www.odbms.org/wp-content/uploads/2014/04/The_Architecture_of_SciDB.pdf
+% Array Store cite -- http://scidb.cs.washington.edu/paper/sigmod362-soroush.pdf
 
 MapReduce \cite{MapReduce} is also commonly used for processing large graphs.
 PEGASUS \cite{pegasus} is a popular graph processing engine built on MapReduce
@@ -75,11 +76,10 @@ the entire vector subspace in RAM. In contrast, our SEM-SpMM handles dense
 matrices of different sizes and our eigensolver stores both the sparse matrix
 and the vector subspace on SSDs.
 
-Anasazi \cite{anasazi} is an eigensolver framework in the Trilinos project
-\cite{trilinos}. This framework implements block extension of multiple
-eigensolver algorithms such as Block Krylov-Schur \cite{krylovschur},
-Block Davidson \cite{Arbenz05} and LOBPCG \cite{Arbenz05}. Anasazi uses
-the matrix implementations in Trilinos that run in distributed memory.
+The Trilinos project \cite{trilinos} has a large collection of numerical libraries.
+The Tpetra library provides efficient sparse matrix operations such as sparse matrix
+multiplication. The matrix implementations in Trilinos are optimized for
+distributed memory.
 
 Intel Math Kernel Library \cite{mkl} is an efficient and parallel linear
 algebra library with matrix operations optimized for Intel

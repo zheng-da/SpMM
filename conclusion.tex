@@ -3,19 +3,20 @@ multiplication (SpMM) to large sparse matrices by utilizing commodity SSDs
 in a large parallel machine. We perform this operation in semi-external memory
 (SEM), in which we keep the sparse matrix on SSDs and the dense matrices in
 memory. Semi-external memory increases scalability in proportion to the ratio
-of non-zero entries to rows or columns in a sparse matrix. SEM-SpMM requires
-both memory optimizations, such as cache blocking and load balancing, and
-I/O optimizations, such as using a compact storage format and I/O polling, to
-realize performance.
+of non-zero entries to rows or columns in a sparse matrix, while achieving
+in-memory performance. We demonstrate
+that our approach provides a promising alternative to distributed computation
+for large-scale data analysis.
 
-Our SEM-SpMM achieves high efficiency while scaling to large graphs with
+With substantial memory and I/O optimizations, our SEM-SpMM achieves high
+efficiency while scaling to large graphs with
 billions of vertices and hundreds of billions of edges. It significantly
 outperforms the Intel MKL and Trilinos implementations. We run our
 implementation in memory (IM-SpMM) to quantify the overhead of keeping data
 on SSDs. SEM-SpMM achieves almost 100\% performance of IM-SpMM on some graphs
-when the dense matrices have more than four columns. Even when the dense matrix
-has only one column, it achieves at least 65\% of the performance of IM-SpMM
-on different graphs.
+when the dense matrices have more than four columns, and achieves at least 65\%
+of the performance of IM-SpMM on all graphs even when the dense matrix
+has only one column.
 
 For a machine with insufficient memory to keep the entire input dense matrix
 in memory, we partition the dense matrix vertically and run SEM-SpMM multiple
@@ -29,12 +30,6 @@ PageRank, eigendecomposition and non-negative matrix factorization. We demonstra
 how additional memory should be used in semi-external memory in each application.
 We further demonstrate that each of our implementations significantly outperforms
 state of the art and scales to large graphs.
-
-Through thorough evaluation, we demonstrate that semi-external memory
-coupled with fast SSDs achieves performance close to highly optimized
-in-memory implementations and scales to massive datasets.
-As such, our approach provides a promising alternative to distributed
-computation for large-scale data analysis.
 
 Our SSD-based solution also achieves high energy efficiency even though
 we have not measured energy consumption explicitly. SSDs are energy-efficient
