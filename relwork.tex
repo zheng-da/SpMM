@@ -3,7 +3,7 @@ Williams et al.~\cite{Williams07} describe optimizations for sparse matrix
 vector multiplication (SpMV) in multicore architectures. Yoo et al.~\cite{Yoo11}
 and Boman et al.~\cite{Boman2013} optimize distributed SpMV for large
 scale-free graphs with 2D partitioning to reduce communication between
-machines. In contrast, Sparse matrix dense matrix multiplication (SpMM) receives
+machines. In contrast, sparse matrix dense matrix multiplication (SpMM) receives
 less attention from the high-performance computing community. Even though
 SpMM can be implemented with SpMV, SpMV fails to explore data locality in
 SpMM. Aktulga et al.~\cite{Aktulga14} optimize SpMM with cache blocking.
@@ -13,7 +13,7 @@ their communication cost in distributed memory.
 We advance SpMM with a focus on optimizations for semi-external memory.
 
 Compressed row storage (CSR) and compressed column storage (CSC) formats are commonly
-used sparse matrix formats in many numeric libraries such as Intel MKL \cite{mkl}
+used sparse matrix formats in many numeric libraries, such as Intel MKL \cite{mkl}
 and Trilinos \cite{trilinos}. However, these formats are not designed for graphs.
 Sparse matrix multiplication with these formats on graphs incurs many random memory
 accesses. %Other, more modern sparse matrix formats have been designed.
@@ -66,7 +66,7 @@ queries and analysis with sparse matrix vector multiplication.
 Other work \cite{Liao14, Yin14, Liu10} implement non-negative matrix
 factorization (NMF) with MapReduce. Although these MapReduce-based
 implementations can scale to very large graphs, they run orders of
-magnitude more slowly than optimized solutions, such as Trillinos and Intel MKL.
+magnitude more slowly than optimized in-memory solutions, such as Trillinos and Intel MKL.
 
 Zhou et al.~\cite{Zhou12} implement an LOBPCG \cite{Arbenz05} eigensolver in
 an SSD cluster. Their implementation targets nuclear many-body Hamiltonian

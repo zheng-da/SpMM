@@ -33,7 +33,7 @@ cache. Furthermore, graphs have near-random vertex connection, which
 leads to random access to rows in a large dense matrix in sparse matrix
 multiplication. As such, these two formats cause many CPU cache misses.
 In addition, the formats require a large
-storage size. For a sparse matrix with billions of non-zero entries, we have to
+storage size. For a sparse matrix with billions of non-zero entries, they have to
 use eight bytes to store row and column indices.
 
 \begin{figure}
@@ -147,7 +147,7 @@ matrix or one of its vertical partitions into memory.
 
 For a non-uniform memory architecture (NUMA), we partition the input dense matrix
 or one of its vertical partitions horizontally and store horizontal partitions
-evenly across NUMA nodes (Figure \ref{dense_mat} (b)). Keeping partitions evenly
+evenly across NUMA nodes (Figure \ref{dense_mat}(b)). Keeping partitions evenly
 across all NUMA nodes helps to fully utilize the bandwidth of memory.
 We assign multiple contiguous rows in a row interval with $2^i$ rows to
 a NUMA node. The row interval size is multiple of the tile size of
@@ -307,27 +307,28 @@ AVX \cite{avx} to enable more efficient memory access and computation.
 
 \subsection{I/O optimizations}
 Semi-external memory sparse matrix multiplication streams a sparse matrix from
-SSDs. When we access fast SSDs sequentially, the overhead of operating systems
-such as thread context switches and memory allocation becomes noticeable.
+SSDs. When we access fast SSDs sequentially, the overhead of operating systems,
+such as thread context switches and memory allocation, becomes noticeable.
 We tackle these obstacles to maximize I/O throughput.
 
 We issue asynchronous I/O and poll for I/O to avoid thread
-context switches. %because the latency of a context switch can undermine
+context switches.
+I/O polling prevents a thread from being switched out after it completes all available computation.
+ %because the latency of a context switch can undermine
 %the sequential I/O throughput of a high-speed SSD array.
-When a thread issues an I/O request and waits for I/O completion,
+Without polling, when a thread issues an I/O request and waits for I/O completion,
 the operating system switches the thread
 out; the operating system reschedules the thread for execution once I/O is
 complete. However, there is latency for thread rescheduling and the latency
 from frequent rescheduling can cause noticeable performance degradation
-on a high-speed SSD array. As such, we use I/O polling to avoid a thread from
-being switched out after the thread completes all computation available to it.
+on a high-speed SSD array.
 
 When accessing a sparse matrix or a dense matrix from SSDs, we maintain a set of
 memory buffers for I/O access to reduce the overhead of memory allocation.
 We use large I/O to access matrices on SSDs to increase I/O throughput.
 Large memory allocation is expensive because the operating
 system usually allocates a large memory buffer with \textit{mmap()} and
-populates the buffer with physical pages when it is used. Therefore, we keep
+populates the buffer with physical pages. Therefore, we keep
 a set of memory buffers allocated previously and reuse them for new I/O requests.
 For accessing a sparse matrix, tile rows usually have different sizes, so we resize
 a previously allocated memory buffer if it is too small for a new I/O request.

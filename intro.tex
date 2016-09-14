@@ -81,8 +81,8 @@ Recent finding, from Frank McSheery \cite{McSherry15,McSherryBlog} and our
 prior work \cite{FlashGraph},
 show that the largest graph analytics tasks can be done on a small fraction of
 the hardware, at less cost, as fast, and using less energy on a single shared-memory 
-node, rather than a distributed compute engine.  Our finding in this paper reveal
-that sparse matrices have the same structure and benefits and that the largest 
+node, rather than a distributed compute engine.  Our findings in this paper reveal
+that sparse matrices have the same structure and benefits and that the largest graph
 matrices can be processed efficiently on scale-up compute nodes.
 
 We explore a solution that scales sparse matrix dense matrix multiplication
@@ -114,7 +114,7 @@ the lives of SSDs \cite{sfs}. As such, our solution needs to sequentialize
 I/O access and reduce I/O, especially writes.
 
 Semi-external memory provides a scalable and efficient SpMM solution that
-meets the I/O challenges and incorporates substantial computation optimizations
+meets the I/O challenges.  We further incorporate substantial computation optimizations
 to achieve performance of SpMM on graphs in a NUMA (non-uniform memory
 architecture) machine. During the computation, each
 thread streams its own partitions of the sparse matrix from SSDs, maximizing
@@ -150,9 +150,8 @@ and the impact of the memory size on the performance of the applications.
 
 The main contributions of this paper are:
 \begin{itemize}
-	\item We scale SpMM in semi-external memory with SSDs and tailor runtime
-		optimizations that meet memory constraints in the semi-external memory
-		setting and asymmetric I/O access of SSDs.
+	\item We scale SpMM in semi-external memory using assymetric I/O to SSDs and we
+    deploy runtime optimizations that meet memory constraints.
 	\item We deploy a compact sparse matrix format to reduce the amount of
 		I/O and alleviate I/O as the bottleneck of the system.
 	\item We deploy a fine-grain dynamic load balancing scheme for sparse
@@ -175,11 +174,13 @@ The main contributions of this paper are:
 Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
 100\% performance of our in-memory implementation on a large parallel machine
 with 48 CPU cores when the dense matrix has more than four columns. Even for
-SpMV, our SEM implementation achieves at least 65\% performance of our in-memory
-implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
-a factor of $2-9$. The applications implemented with our SpMM significantly
-outperform the state-of-the-art implementations of these applications. As such,
-we conclude that semi-external memory coupled with SSDs delivers an efficient
+{\em SpMV} (sparse-matrix vector multiplication: the special case in whcih the dense 
+matrix has a single column), our SEM implementation achieves at least 65\% 
+performance of our in-memory implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
+a factor of $2-9$. 
+%The applications implemented with our SpMM significantly
+%outperform the state-of-the-art implementations of these applications. As such,
+We conclude that semi-external memory coupled with SSDs delivers an efficient
 solution for large-scale sparse matrix multiplication. It serves
 as a building block and offers new design possibilities for large-scale
 data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs

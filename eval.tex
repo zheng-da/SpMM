@@ -54,8 +54,8 @@ the size gap between the smallest and largest graphs. We construct a directed an
 undirected version for each of the synthetic graphs because some applications
 in Section \ref{sec:spmm:apps} run on directed graphs and others run on undirected
 graphs. The real-world datasets are publically available and the synthetic
-datasets are generated with the \textit{boost} RMAT generator
-\footnote{We use the parameters of $a=0.57$, $b=0.19$, $c=0.19$,
+datasets are generated with the \textit{boost} RMAT generator\footnote{We use the 
+parameters of $a=0.57$, $b=0.19$, $c=0.19$,
 $d=0.05$.}. We always use the undirected version of the synthetic graphs for
 the performance evaluation of sparse matrix multiplication.
 
@@ -191,7 +191,7 @@ computation efficiency and has substantial I/O optimizations to reduce
 the performance gap between IM-SpMM and SEM-SpMM (Section \ref{sec:opts}).
 Specifially, the fine-grain dynamic load balancer achieves better load balancing
 than MKL and Tpetra. Cache blocking significantly reduces CPU cache misses,
-while MKL and Tpetra store a sparse matrix in CSC or CSR format and have
+whereas MKL and Tpetra store a sparse matrix in CSC or CSR format and have
 more CPU cache misses. %Because Tpetra
 %is implemented with MPI, it has additional memory copy overhead to exchange
 %partitions of the input dense matrix among processes.
@@ -257,14 +257,14 @@ Tpetra uses many more computation resources and still barely reaches
 the same performance as our IM-SpMM and SEM-SpMM on our NUMA machine. One of
 the main reasons that our SpMM implementation performs much
 better on real-world graphs is that these graphs are more likely to cause
-load imbalance. Our SpMM implementation balances load much better than Tpetra.
+load imbalance. The dynamic scheduling of our SpMM implementation balances load much better than Tpetra.
 
 \subsection{SEM-SpMM with a large input dense matrix}
 
 We further measure the performance of SEM-SpMM with a large input dense matrix,
 in which neither the sparse matrix nor the dense matrices can fit in memory.
 In this experiment, we measure the performance of multiplying a sparse matrix
-with a dense matrix of 32 columns and the input and output dense matrices are
+with a vertically partitioned dense matrix and the input and output dense matrices are
 stored on SSDs. We study the impact of memory size on the performance of SEM-SpMM
 by artificially varying the number of columns that can fit in memory. SEM-SpMM
 accesses the sparse matrix with direct I/O and, thus, varying the number of
@@ -426,9 +426,8 @@ RMAT-160 & 19.81 s & 9.51 GB/s & 7.96 s & 10.27 s\\
 
 Format conversion from CSR to SCSR has low cost with linear time complexity and
 is bottlenecked by SSDs on our largest graphs (Table \ref{convert}).
-It requires to read
-the CSR image once and write the SCSR image back once, which results in
-the minimum amount of I/O and the best performance achieved on our SSD array.
+It reads the CSR image once and write the SCSR image back once, both sequentially.
+This results in the minimum amount of I/O and I/O bounds the computation.
 Format conversion generates only one-time overhead. Most of the applications
 such as PageRank and eigensolving require many iterations of sparse matrix
 multiplication to compute accurate results. As such, the format conversion
