@@ -272,7 +272,7 @@ tile rows; as the computation approaches completion, a thread gets smaller
 tasks that contain only one tile row. This design reduces concurrent access to
 the global data structure while realizing good load balance.
 
-The algorithm performs asynchronous I/O and merge writes from mutliple threads
+The algorithm performs asynchronous I/O and merge writes from multiple threads
 into larger ones. Large writes ensure sustainable write throughput to SSDs and
 increase their duration. To assist in I/O merging, we use
 \textit{get\_tile\_rows()} to control a global execution

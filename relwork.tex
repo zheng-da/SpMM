@@ -49,7 +49,7 @@ such as Intel MKL \cite{mkl} and Trilinos Tpetra \cite{trilinos}.
 
 Array databases such as SciDB \cite{scidb} and Rasdaman \cite{rasdaman} support
 sparse matrix mutliplication. They perform matrix multiplication using CSR
-formats \cite{SLACID}, similar to Intel MKL and Trillinos.  There has also been
+formats \cite{SLACID}, similar to Intel MKL and Trilinos.  There has also been
 preliminary research on accelerating matrix multiplication with GPUs \cite{Liu14},
 showing that speedups are limited by I/O and setup costs and that benefits
 are limited to compute dense operations.
@@ -66,7 +66,7 @@ queries and analysis with sparse matrix vector multiplication.
 Other work \cite{Liao14, Yin14, Liu10} implement non-negative matrix
 factorization (NMF) with MapReduce. Although these MapReduce-based
 implementations can scale to very large graphs, they run orders of
-magnitude more slowly than optimized in-memory solutions, such as Trillinos and Intel MKL.
+magnitude more slowly than optimized in-memory solutions, such as Trilinos and Intel MKL.
 
 Zhou et al.~\cite{Zhou12} implement an LOBPCG \cite{Arbenz05} eigensolver in
 an SSD cluster. Their implementation targets nuclear many-body Hamiltonian

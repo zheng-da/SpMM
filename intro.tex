@@ -76,7 +76,7 @@ These machines typically have multiple processors with many CPU cores and
 a large amount of memory. They are also equipped with fast flash
 memory such as solid-state drives (SSDs) to further extend memory capacity.
 This conforms to the node design for supercomputers \cite{Ang14}.
-Recent finding, from Frank McSheery \cite{McSherry15,McSherryBlog} and our
+Recent finding, from Frank McSherry \cite{McSherry15,McSherryBlog} and our
 prior work \cite{FlashGraph},
 show that the largest graph analytics tasks can be done on a small fraction of
 the hardware, at less cost, as fast, and using less energy on a single shared-memory 
@@ -149,7 +149,7 @@ and the impact of the memory size on the performance of the applications.
 
 The main contributions of this paper are:
 \begin{itemize}
-	\item We scale SpMM in semi-external memory using assymetric I/O to SSDs and we
+	\item We scale SpMM in semi-external memory using asymmetric I/O to SSDs and we
     deploy runtime optimizations that meet memory constraints.
 	\item We deploy a compact sparse matrix format to reduce the amount of
 		I/O and alleviate I/O as the bottleneck of the system.
@@ -173,7 +173,7 @@ The main contributions of this paper are:
 Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
 100\% performance of our in-memory implementation on a large parallel machine
 with 48 CPU cores when the dense matrix has more than four columns. Even for
-{\em SpMV} (sparse-matrix vector multiplication: the special case in whcih the dense 
+{\em SpMV} (sparse-matrix vector multiplication: the special case in which the dense 
 matrix has a single column), our SEM implementation achieves at least 65\% 
 performance of our in-memory implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
 a factor of $2-9$. 
