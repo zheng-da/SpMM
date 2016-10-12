@@ -26,15 +26,15 @@ We design a new compact sparse matrix format that increases CPU cache hits and
 reduces the amount of data read from SSDs. A compact format is performance critical 
 because in SEM-SpMM the I/O to SSDs is most often the bottleneck.
 
-Traditional sparse matrix formats, such as compressed row storage (CSR) and
-compressed column storage (CSC), are not designed for graphs. Graphs are sparse
-and large so the dense matrix involved in SpMM is too large to fit in CPU
-cache. Furthermore, graphs have near-random vertex connection, which
-leads to random access to rows in a large dense matrix in sparse matrix
-multiplication. As such, these two formats cause many CPU cache misses.
-In addition, the formats require a large
-storage size. For a sparse matrix with billions of non-zero entries, they have to
-use eight bytes to store row and column indices.
+%Traditional sparse matrix formats, such as compressed row storage (CSR) and
+%compressed column storage (CSC), are not designed for graphs. Graphs are sparse
+%and large so the dense matrix involved in SpMM is too large to fit in CPU
+%cache. Furthermore, graphs have near-random vertex connection, which
+%leads to random access to rows in a large dense matrix in sparse matrix
+%multiplication. As such, these two formats cause many CPU cache misses.
+%In addition, the formats require a large
+%storage size. For a sparse matrix with billions of non-zero entries, they have to
+%use eight bytes to store row and column indices.
 
 \begin{figure}
 \centering

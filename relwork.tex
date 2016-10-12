@@ -20,8 +20,8 @@ accesses. %Other, more modern sparse matrix formats have been designed.
 Sparsity \cite{Im04} designs a format that encodes both register blocking and cache blocking to
 increase data reuse in the CPU cache for sparse matrix multiplication. Register blocking
 requires explicit storage of zero values in register blocks. This strategy
-wastes space and computation for graphs because graphs are very
-sparse and have nearly random vertex connection. Buluc et al.~\cite{Buluc08}
+wastes space and computation for graphs because graphs are very sparse and
+\hl{a vertex in a graph can connect to arbitrary other vertices}. Buluc et al.~\cite{Buluc08}
 further advance sparse matrix format
 by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
 partitioning on a sparse matrix. This format significantly reduces the storage

@@ -30,9 +30,8 @@ as register blocking and prefetching \cite{Williams07} increase storage size,
 bring more data to CPU cache unnecessarily and hurt performance.
 The commonly used sparse matrix storage formats such as CSR (compressed sparse
 row) and CSC (compressed sparse column) for graph matrices leads to significant
-CPU cache misses
-in sparse matrix multiplication due to near-random distribution of non-zero
-entries as well as the sparsity and the enormous size of graphs. 
+CPU cache misses in sparse matrix multiplication because \hl{graphs are sparse and
+enormous and a vertex in a graph can connect to arbitrary other vertices}.
 
 We focus on sparse matrices derived from graphs because they are more difficult 
 to compute efficiently than general sparse matrices and because some of the 
