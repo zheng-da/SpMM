@@ -107,7 +107,7 @@ to 8.  SpMV on the Page
 graph saturates the I/O bandwidth of SSDs and is clearly bottlenecked by I/O.
 SpMV on other graphs (except Twitter) also generates high I/O throughput,
 which consumes memory bandwidth and potentially interferes with random memory
-access in SpMV. SEM-SpMV on the Twitter graph takes about 0.5 second to
+access in SpMV. SEM-SpMV on the Twitter graph takes only about 0.5 second to
 complete and,
 thus, startup overhead has significant impact on the average I/O throughput.
 As the number of columns in the dense matrix increases, SEM-SpMM becomes more
@@ -120,19 +120,23 @@ We illustrate some of the factors with stochastic block model (SBM)
 \cite{sussman12}, a random graph generation model with well-defined clusters
 widely used in the graph community. In this experiment, we
 generate SBM graphs with 100 million vertices and 3 billion edges.
-One of the main factors is whether vertices in a graph are ordered
-based on its cluster structures. If the vertices in a graph are randomly ordered,
+%One of the main factors is whether vertices in a graph are ordered
+%based on its cluster structures. 
+If the vertices in a graph are randomly ordered,
 SpMV on the graph generates many random memory access. Thus, the system is
-bottlenecked by memory bandwidth and the performance gap is small. Because it
-is expensive to find cluster structures in a graph and order vertices accordingly,
-we usually run
-SpMM on an unclustered graph. Even on a graph with vertices ordered based on
-cluster structures, some cluster properties such as the number of clusters and
+bottlenecked by memory bandwidth and the performance gap between IM-SpMV and SEM-SpMV is small. 
+%Because it
+%is expensive to find cluster structures in a graph and order vertices accordingly,
+%we usually run
+%SpMM on an unclustered graph. 
+On a graph with vertices ordered based on cluster structures, 
+the number of clusters and
 the ratio of edges inside and outside clusters have significant impact on
 the performance gap.
 As the number of clusters increases, the size of clusters gets smaller and
 there are fewer random memory accesses inside clusters. Similarly, more
 edges inside clusters also lead to fewer random memory accesses.
+In both cases, the performance gap grows.
 
 \begin{figure}
 	\begin{center}
@@ -147,7 +151,7 @@ edges inside clusters also lead to fewer random memory accesses.
 	\end{center}
 \end{figure}
 
-\subsection{Compare with other in-memory SpMM}
+\subsection{Comparison with other in-memory SpMM}
 In this section, we compare our SpMM implementation with the Intel MKL and
 Trilinos Tpetra. Intel MKL runs on shared-memory machines. Trilinos Tpetra runs in
 both shared memory and distributed memory, so we measure its performance in
@@ -198,13 +202,13 @@ more CPU cache misses. %Because Tpetra
 %is implemented with MPI, it has additional memory copy overhead to exchange
 %partitions of the input dense matrix among processes.
 
-SEM-SpMM only consumes a small fraction of memory compared with IM-SpMM and
+SEM-SpMM consumes a small fraction of memory when compared with IM-SpMM and
 other SpMM implementations (Figure \ref{perf:spmm_mem}). SEM-SpMM consumes
 memory for the input dense matrix and per-thread memory buffers for the sparse
 matrix and the output dense matrix. The memory used by memory buffers
 in each thread is significant
-but is relatively constant for different graph sizes. We only show the memory
-consumption on one of the large graphs RMAT-160 in Figure \ref{perf:spmm_mem}.
+but is relatively constant for different graph sizes. We show the memory
+consumption on one of the large graphs RMAT-160 (Figure \ref{perf:spmm_mem}).
 SEM-SpMM uses about one tenth of the memory used by IM-SpMM, while IM-SpMM
 consumes much less memory than MKL and Tpetra owing to its compact format for
 sparse matrices.
@@ -438,7 +442,7 @@ such as PageRank and eigensolving require many iterations of sparse matrix
 multiplication to compute accurate results. As such, the format conversion
 overhead is amortized.
 
-\subsection{Performance of the applications}
+\subsection{Application performance}
 
 We evaluate the performance of our implementations of the applications in
 Section \ref{sec:spmm:apps}. We show the effectiveness of additional memory for
@@ -549,11 +553,12 @@ improvement is more significant when the number of columns that fit in memory
 is small. When we keep eight columns of the input dense matrix in memory,
 SEM-NMF achieves over 60\% of the performance of the in-memory implementation.
 
-SEM-NMF significantly outperforms other NMF implementations in the literature.
+SEM-NMF significantly outperforms other NMF implementations.
 SmallK is the closest competitor. We run the same NMF algorithm in SmallK and
 SEM-NMF outperforms SmallK by a large factor on all graphs (Figure
-\ref{perf:NMF}). There are many MapReduce implementations in
-the literature \cite{Liao14, Yin14, Liu10}. They run on sparse
-matrices with tens of millions of non-zero entries but generally take
-one or two orders of magnitude more time than our SEM-NMF on the sparse matrices
-with billions of non-zero entries.
+\ref{perf:NMF}). 
+%There are many MapReduce implementations in
+%the literature \cite{Liao14, Yin14, Liu10}. They run on sparse
+%matrices with tens of millions of non-zero entries but generally take
+%one or two orders of magnitude more time than our SEM-NMF on the sparse matrices
+%with billions of non-zero entries.

@@ -147,7 +147,7 @@ matrix or one of its vertical partitions into memory.
 
 For a non-uniform memory architecture (NUMA), we partition the input dense matrix
 or one of its vertical partitions horizontally and store horizontal partitions
-evenly across NUMA nodes (Figure \ref{dense_mat}(b)). Keeping partitions evenly
+evenly across NUMA nodes (Figure \ref{dense_mat}(b)). Striping partitions evenly
 across all NUMA nodes helps to fully utilize the bandwidth of memory.
 We assign multiple contiguous rows in a row interval with $2^i$ rows to
 a NUMA node. The row interval size is multiple of the tile size of
@@ -157,7 +157,7 @@ from a single row interval.
 \begin{figure}
 \centering
 \includegraphics[scale=0.4]{SpMM_figs/dense_matrix.pdf}
-\caption{Dense matrices in SpMM are first partitioned
+\caption{Dense matrices are partitioned
 vertically, so that each vertical partition fits in memory. A vertical
 partition stores data in row-major order. When a vertical partition is loaded
 into memory, it is partitioned horizontally into many row intervals that
@@ -300,7 +300,7 @@ In SpMM, we multiply a non-zero entry from a tile with all elements in
 a row of the input dense matrix and add the results to the corresponding row
 of the output dense matrix.
 We perform these operations with vector CPU instructions, such as
-AVX \cite{avx} to enable more efficient memory access and computation.
+AVX \cite{avx}, to enable more efficient memory access and computation.
 %The current implementation relies on GCC's auto-vectorization
 %to translate the C code to vector CPU instructions by predefining the matrix
 %width in the code.
