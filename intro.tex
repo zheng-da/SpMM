@@ -12,18 +12,18 @@ multiplication. Others, such as NMF, require sparse matrix dense
 matrix multiplication.
 % Why is it hard?
 
-It is challenging to implement sparse matrix multiplication efficiently. 
+It is challenging to implement sparse matrix multiplication efficiently.
 It has very low computation density and its
 performance is limited by memory access. Sparse matrix multiplication usually achieves only
 a small fraction of the peak performance of a modern processor \cite{Williams07}.
 
 Sparse matrices derived from graphs impose additional challenges.
 Many graphs have a power-law distribution in vertex
-degree.  This produces a power-law distribution in the number of non-zero 
-entries per column or row in the associated matrix, which   
-results in load imbalance in parallel decompositions of sparse 
-matrix multiplication. 
-Graph matrices are much sparser and have more random distribution 
+degree.  This produces a power-law distribution in the number of non-zero
+entries per column or row in the associated matrix, which
+results in load imbalance in parallel decompositions of sparse
+matrix multiplication.
+Graph matrices are much sparser and have more random distribution
 than traditional sparse matrices that arise in scientific
 computing. As such, many optimizations for traditional sparse matrices, such
 as register blocking and prefetching \cite{Williams07} increase storage size,
@@ -33,17 +33,17 @@ row) and CSC (compressed sparse column) for graph matrices leads to significant
 CPU cache misses in sparse matrix multiplication because graphs are sparse and
 large.
 
-We focus on sparse matrices derived from graphs because they are more difficult 
-to compute efficiently than general sparse matrices and because some of the 
-largest matrices and most important analysis tasks operate on graph datasets, 
-e.g.~social networks and Web graphs. 
+We focus on sparse matrices derived from graphs because they are more difficult
+to compute efficiently than general sparse matrices and because some of the
+largest matrices and most important analysis tasks operate on graph datasets,
+e.g.~social networks and Web graphs.
 Facebook's social network has billions of vertices and
 the Web Data Commons graph \cite{web_graph} has 3.6 billion vertices and 128
 billions edges. We perform sparse matrix multiplication for graph
 analysis such as community detection with NMF and spectral analysis with SVD.
 
 %These matrices inherit structure
-%from natural graphs. 
+%from natural graphs.
 %
 %They are typically very sparse and have near-random
 %distribution for non-zero entries. They also have a power law distribution
@@ -70,7 +70,7 @@ challenges in achieving load balancing on power-law graphs.
 
 %What is the nature of your solution?
 On the other hand, a current trend for hardware design scales up
-a single machine, rather than scaling out to 
+a single machine, rather than scaling out to
 many networked machines.
 These machines typically have multiple processors with many CPU cores and
 a large amount of memory. They are also equipped with fast flash
@@ -79,7 +79,7 @@ This conforms to the node design for supercomputers \cite{Ang14}.
 Recent finding, from Frank McSherry \cite{McSherry15,McSherryBlog} and our
 prior work \cite{FlashGraph},
 show that the largest graph analytics tasks can be done on a small fraction of
-the hardware, at less cost, as fast, and using less energy on a single shared-memory 
+the hardware, at less cost, as fast, and using less energy on a single shared-memory
 node, rather than a distributed compute engine.  Our findings in this paper reveal
 that sparse matrices have the same structure and benefits and that the largest graph
 matrices can be processed efficiently on a single scale-up compute node.
@@ -156,7 +156,7 @@ The main contributions of this paper are:
 	\item We deploy a fine-grain dynamic load balancing scheme for sparse
 		matrices with power-law distribution in non-zero entries.
 	\item We optimize SpMM for dense matrices with various numbers of columns
-		and extends SEM-SpMM to large dense matrices that cannot fit in memory
+		and extend SEM-SpMM to large dense matrices that cannot fit in memory
 		by vertically partitioning the dense matrices.
 %	\item We demonstrate that SpMM in semi-external memory, coupled with SSDs,
 %		meets or even exceeds the performance of highly optimized in-memory
@@ -173,15 +173,15 @@ The main contributions of this paper are:
 Our result shows that for real-world sparse graphs, our SEM-SpMM achieves almost
 100\% performance of our in-memory implementation on a large parallel machine
 with 48 CPU cores when the dense matrix has more than four columns. Even for
-{\em SpMV} (sparse-matrix vector multiplication: the special case in which the dense 
-matrix has a single column), our SEM implementation achieves at least 65\% 
+{\em SpMV} (sparse-matrix vector multiplication: the special case in which the dense
+matrix has a single column), our SEM implementation achieves at least 65\%
 performance of our in-memory implementation and outperforms Trilinos \cite{trilinos} and MKL \cite{mkl} by
-a factor of $2-9$. 
+a factor of $2-9$.
 %The applications implemented with our SpMM significantly
 %outperform the state-of-the-art implementations of these applications. As such,
 We conclude that semi-external memory coupled with SSDs delivers an efficient
 solution for large-scale sparse matrix multiplication. It serves
 as a building block and offers new design possibilities for large-scale
 data analysis, replacing memory with larger, cheaper, more energy-efficient SSDs
-and processing bigger problems on fewer machines. The code for SpMM and SpMV has been 
+and processing bigger problems on fewer machines. The code for SpMM and SpMV has been
 released as open source as part of the FlashX system at http://flashx.io.
