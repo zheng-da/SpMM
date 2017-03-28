@@ -167,7 +167,7 @@ are striped across NUMA nodes.}
 
 \subsection{Parallel Execution} \label{sec:exec}
 We parallelize sparse matrix multiplication and deploy only computation
-optimizations with a small memory footprint. Memory is precious resource
+optimizations with a small memory footprint. Memory is a precious resource
 in semi-external memory because memory should be used to keep more columns
 in the input dense matrix to reduce I/O from SSDs.
 Algorithm \ref{alg:spmm} and Figure \ref{spmm_exec} illustrate the execution of
@@ -269,10 +269,11 @@ gets one computation task (tile rows) at a time from \textit{trQ} with
 \textit{get\_tile\_rows} and performs computation (\textit{MulTRows}).
 At the beginning, a thread gets larger computation tasks that contains multiple
 tile rows; as the computation approaches completion, a thread gets smaller
-tasks that contain only one tile row. This design reduces concurrent access to
+tasks with each containing only one tile row.
+This design reduces concurrent access to
 the global data structure while realizing good load balance.
 
-The algorithm performs asynchronous I/O and merge writes from multiple threads
+The algorithm performs asynchronous I/O and merges writes from multiple threads
 into larger ones. Large writes ensure sustainable write throughput to SSDs and
 increase their duration. To assist in I/O merging, we use
 \textit{get\_tile\_rows()} to control a global execution
@@ -489,7 +490,7 @@ of a $n \times n$ sparse matrix, many eigenvalue algorithms construct a vector
 subspace with a sequence of sparse matrix multiplications and each vector in
 the subspace has the length of $n$. Due to the sparsity of real-world graphs,
 the vector subspace is large and we keep the vectors on SSDs.
-The Anasazi eigensolvers have block extension to update multiple vectors in
+The Anasazi eigensolvers have block extensions to update multiple vectors in
 the subspace simultaneously, which results in sparse matrix dense
 matrix multiplication. The most efficient Anasazi eigensolver on sparse graphs
 is the KrylovSchur eigensolver \cite{krylovschur}, which updates a small number
