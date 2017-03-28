@@ -96,7 +96,7 @@ is affected by randomness of vertex connection. The gap is smaller if
 vertex connection in a graph is more random. The Page graph is relatively
 well clustered, so SpMM on this graph is less CPU-bound than others.
 Even for the Page graph, SEM-SpMM gets 65\% performance of IM-SpMM.
-The other factor of affecting the performance gap is the number of columns
+The other factor that affects the performance gap is the number of columns
 in the dense matrices. The gap gets smaller as the number of columns in
 the dense matrices increases.
 
@@ -116,7 +116,7 @@ performance of IM-SpMM.
 
 Multiple factors affect CPU cache hits in sparse matrix multiplication and
 the performance gap between IM-SpMV and SEM-SpMV (Figure \ref{perf:spmm_sbm}).
-We illustrate some of the factors with stochastic block model (SBM)
+We illustrate some of the factors with the stochastic block model (SBM)
 \cite{sussman12}, a random graph generation model with well-defined clusters
 widely used in the graph community. In this experiment, we
 generate SBM graphs with 100 million vertices and 3 billion edges.
