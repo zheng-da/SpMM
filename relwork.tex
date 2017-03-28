@@ -21,7 +21,7 @@ Sparsity \cite{Im04} designs a format that encodes both register blocking and ca
 increase data reuse in the CPU cache for sparse matrix multiplication. Register blocking
 requires explicit storage of zero values in register blocks. This strategy
 wastes space and computation for graphs because graphs are sparse and
-a vertex in a graph can connect to arbitrary other vertices. Buluc et al.~\cite{Buluc08}
+a vertex in a graph can connect to an arbitrary number of other vertices. Buluc et al.~\cite{Buluc08}
 further advance sparse matrix format
 by doubly compressed sparse column (DCSC) for hypersparse submatrices after 2D
 partitioning on a sparse matrix. This format significantly reduces the storage
@@ -29,7 +29,7 @@ size of a 2D-partitioned sparse matrix. Our format further reduces the storage
 size of a sparse matrix.
 
 Abello et al.~\cite{Abello98} introduced the semi-external memory algorithmic
-framework for graphs. Pearce et al.~\cite{Pearce10} implement several 
+framework for graphs. Pearce et al.~\cite{Pearce10} implement several
 semi-external memory graph traversal algorithms for SSDs. FlashGraph
 \cite{FlashGraph} adopted the concept and performs graph algorithms with
 vertex state in memory and edge lists on SSDs. This work extends the semi-external
@@ -44,7 +44,7 @@ algorithms expressed as sparse matrix vector multiplication and keeps both
 graphs and vertex computation state on disks. In contrast, our work focuses on
 optimizations on sparse matrix dense matrix multiplication and performs this
 operation in semi-external memory to reduce I/O, especially writes,
-to SSDs. GridGraph runs more slowly than in-memory linear algebra libraries
+to SSDs. GridGraph runs slower than in-memory linear algebra libraries
 such as Intel MKL \cite{mkl} and Trilinos Tpetra \cite{trilinos}.
 
 Array databases such as SciDB \cite{scidb} and Rasdaman \cite{rasdaman} support
@@ -61,9 +61,9 @@ MapReduce \cite{MapReduce} is also commonly used for processing large graphs.
 PEGASUS \cite{pegasus} is a popular graph processing engine built on MapReduce
 and expresses graph algorithms as a generalized form of sparse matrix-vector
 multiplication. GBase \cite{gbase} is a graph database built on MapReduce.
-It optimizes the graph storage for graph queries and analysis and perform graph
+It optimizes the graph storage for graph queries and analysis and perform graphs
 queries and analysis with sparse matrix vector multiplication.
-Other work \cite{Liao14, Yin14, Liu10} implement non-negative matrix
+Other works \cite{Liao14, Yin14, Liu10} implement non-negative matrix
 factorization (NMF) with MapReduce. Although these MapReduce-based
 implementations can scale to very large graphs, they run orders of
 magnitude more slowly than optimized in-memory solutions, such as Trilinos and Intel MKL.
